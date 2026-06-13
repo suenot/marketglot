@@ -1,0 +1,13 @@
+# Normalize line endings
+* text=auto eol=lf
+
+# Treat notebooks and weights as binary-ish (no merge conflicts on JSON noise)
+*.ipynb -text linguist-language=Python
+*.npy binary
+*.npz binary
+*.pt binary
+*.parquet binary
+
+# Keep GitHub language stats focused on real code
+docs/** linguist-documentation
+*.ipynb linguist-generated

@@ -1,0 +1,46 @@
+data:
+  symbol: BTCUSDT
+  data_dir: ../../../w_trender/backtests/data
+  train_months: ["2023-02", "2025-06"]
+  val_months: ["2025-07", "2025-10"]
+  test_months: ["2025-11", "2026-02"]
+
+sequence:
+  length: 128
+  target_horizon: 60
+  target_threshold: 0.0015
+
+tokenizer:
+  delta:
+    range_pct: 3.0
+    step_pct: 0.05
+  bucket:
+    n_bins: 8
+
+model:
+  candle:
+    delta_vocab_size: 122
+    bucket_vocab_size: 10
+    delta_emb_dim: 64
+    bucket_emb_dim: 16
+    proj_dim: 128
+  indicator:
+    vocab_sizes: [7, 9, 7, 8, 7, 7]
+    emb_dim: 16
+    proj_dim: 128
+  fusion:
+    hidden_dim: 256
+    num_layers: 4
+    num_heads: 8
+    ffn_dim: 1024
+    dropout: 0.1
+    num_classes: 3
+
+training:
+  batch_size: 64
+  learning_rate: 3.0e-4
+  weight_decay: 0.01
+  epochs: 10
+  early_stop_patience: 3
+  device: auto
+  checkpoint_dir: checkpoints

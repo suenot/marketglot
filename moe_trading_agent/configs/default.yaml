@@ -1,0 +1,22 @@
+model:
+  seq_len: 128
+  num_experts: 8
+  top_k: 2
+  num_layers: 4
+  num_heads: 8
+  dim: 256
+  hidden_dim: 1024
+  dropout: 0.1
+  num_classes: 3
+
+training:
+  batch_size: 32
+  lr: 3e-4
+  weight_decay: 0.01
+  aux_loss_lambda: 0.01
+  epochs: 50
+  patience: 3
+  horizon: 60
+  threshold: 0.0015
+  train_split: 0.8
+  val_split: 0.1

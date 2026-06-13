@@ -1,0 +1,13 @@
+{
+  "id": "suenot/orderbook-encoder-training",
+  "title": "orderbook-encoder-training",
+  "code_file": "orderbook_encoder.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": false,
+  "dataset_sources": ["suenot/orderbook-samples-xrpusdt"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

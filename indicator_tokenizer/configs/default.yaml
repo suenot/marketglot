@@ -1,0 +1,29 @@
+data:
+  symbol: BTCUSDT
+  data_dir: ../../w_trender/backtests/data
+  train_months: ["2023-02", "2025-06"]
+
+indicators:
+  rsi:
+    period: 14
+    bins: [20, 30, 70, 80]
+  macd_hist:
+    fast: 12
+    slow: 26
+    signal: 9
+    n_quantile_bins: 7
+  bollinger_pctb:
+    period: 20
+    num_std: 2
+    bins: [0.0, 0.25, 0.75, 1.0]
+  atr:
+    period: 14
+    n_quantile_bins: 6
+  volume_ratio:
+    period: 20
+    n_quantile_bins: 5
+  price_vs_sma:
+    period: 20
+    n_quantile_bins: 5
+
+boundaries_dir: boundaries

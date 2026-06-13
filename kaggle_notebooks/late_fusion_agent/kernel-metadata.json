@@ -1,0 +1,13 @@
+{
+  "id": "suenot/late-fusion-agent",
+  "title": "Late Fusion Agent - Algo Trading NN",
+  "code_file": "late_fusion_agent.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}

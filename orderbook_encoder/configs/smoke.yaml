@@ -1,0 +1,36 @@
+data:
+  symbol: XRPUSDT
+  exchange: bybit
+  api_base: https://warehouse.marketmaker.cc/api/v1
+  s3_base: https://s3.warehouse.marketmaker.cc/warehouse-data
+  raw_dir: data/raw
+  samples_dir: data/samples
+
+sampling:
+  interval_sec: 1.0
+  depth: 20
+
+target:
+  horizon_sec: 60
+  threshold_pct: 0.05
+
+split:
+  train_days: ["2026-06-09"]
+  val_days: ["2026-06-09"]
+  test_days: ["2026-06-09"]
+
+model:
+  input_dim: 80          # 4 * sampling.depth
+  hidden_dims: [256, 128]
+  embedding_dim: 64
+  num_classes: 3
+  dropout: 0.1
+
+training:
+  batch_size: 256
+  learning_rate: 1.0e-3
+  weight_decay: 0.01
+  epochs: 2
+  early_stop_patience: 3
+  device: auto
+  artifacts_dir: artifacts

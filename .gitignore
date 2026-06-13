@@ -1,0 +1,88 @@
+# ──────────────────────────────────────────────────────────────
+#  w_training — repository ignore rules
+# ──────────────────────────────────────────────────────────────
+
+# Python bytecode / packaging
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+wheels/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Test / type / lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS junk
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Internal tooling / scratch
+.manager/
+
+# ──────────────────────────────────────────────────────────────
+#  Data, checkpoints & artifacts (re-downloadable / regenerated)
+# ──────────────────────────────────────────────────────────────
+
+# Logs
+logs/
+*.log
+
+# Downloaded / generated datasets (each project re-fetches via its own scripts)
+data/
+datasets/
+
+# Training outputs
+checkpoints/
+artifacts/
+runs/
+outputs/
+wandb/
+
+# Large binary data & model weights
+*.parquet
+*.csv
+*.npz
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+*.bin
+*.part
+
+# Keep the fitted indicator quantile boundaries (small, source-of-truth artifacts)
+*.npy
+!indicator_tokenizer/boundaries/*.npy
