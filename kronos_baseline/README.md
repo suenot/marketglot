@@ -48,6 +48,23 @@ print(res.label_name, res.class_probs, res.pred_return)
 `predict_signal` returns a `SignalResult` (label, point forecast, horizon return,
 MC class probabilities, mean predicted path).
 
+## Evaluation
+
+`scripts/evaluate.py` benchmarks the signal on many (symbol, window) pairs
+(batched via `predict_batch`) and reports 3-class / directional accuracy and
+forecast MAE vs naive baselines:
+
+```bash
+KRONOS_PATH=../Kronos python kronos_baseline/scripts/evaluate.py \
+    --n-symbols 12 --windows-per-symbol 40 --sample-count 5 --batch-size 16 \
+    --out kronos_baseline/artifacts/eval.json
+```
+
+Zero-shot result on our crypto 1m data (480 windows × 12 symbols, horizon 60,
+±0.15%): only a marginal edge — directional ≈0.58, 3-class 0.415 vs 0.379
+baseline, MAE worse than persistence. Details & interpretation in
+[`docs/research/kronos.md`](../docs/research/kronos.md#evaluation-on-our-data-zero-shot-2026-06-13).
+
 ## Tests
 
 Network-free unit tests cover the labeling logic and path resolution:

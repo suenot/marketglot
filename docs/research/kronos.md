@@ -29,6 +29,32 @@ Reproduce: see [How to run](#how-to-run-locally) below.
 
 ---
 
+## Evaluation on our data (zero-shot, 2026-06-13)
+
+Objective benchmark via `kronos_baseline/scripts/evaluate.py` — **480 windows ×
+12 symbols** (BTC/ETH/SOL/XRP/BNB/DOGE/ADA/AVAX/LINK/LTC/TRX/DOT), evenly spaced
+over 8 months of `klines_1m` (pulled from server1). Kronos-small, lookback 400,
+**horizon 60 candles**, ±0.15% deadband, `sample_count=5`. Zero-shot (no finetune).
+
+| Metric | Kronos | Naive baseline | Verdict |
+|---|---|---|---|
+| 3-class accuracy (DOWN/FLAT/UP) | **0.415** | 0.379 (most-frequent) | lift only **+0.035** |
+| Directional acc (non-flat, n=288) | **0.583** | 0.537 (majority UP/DOWN) | lift **+0.046** |
+| Forecast MAE, % of price | **0.544** | 0.285 (persistence) | **worse** |
+
+Class balance was DOWN 0.33 / FLAT 0.29 / UP 0.38; per-symbol accuracy ranged
+0.30–0.50. The model rarely predicts FLAT correctly (31/141) and leans UP.
+
+**Honest read:** zero-shot Kronos gives only a **marginal edge** on crypto 1m at a
+60-minute horizon — directional ~58% (barely above a coin flip) and point-forecast
+MAE worse than "price doesn't move" (expected: 60×1m is near-martingale, and Kronos
+was pre-trained mostly on non-crypto / coarser bars). Not usable as-is as a signal.
+Candidates to improve: **finetune on our symbols**, shorter horizon (5–15 candles),
+confidence-gating on the MC class probabilities, or use Kronos embeddings as a
+*feature* into our fusion/MoE models rather than a standalone predictor.
+
+---
+
 ## How Kronos works (grounded in the code)
 
 Two stages: a **tokenizer** (continuous candle → discrete tokens) and an
@@ -122,7 +148,8 @@ it with a *diffusion* decoder for throughput.
 1. **Baseline now (no training):** ✅ done — `kronos_baseline/` wraps
    `KronosPredictor` into a marketglot 3-class signal (forecast → UP/FLAT/DOWN with
    our horizon/threshold, MC paths → class probabilities). Run locally on BTCUSDT.
-   Next: benchmark against `token_first_transformer` once that is trained.
+   Zero-shot benchmark on our data done (see [Evaluation](#evaluation-on-our-data-zero-shot-2026-06-13)
+   — only a marginal edge). Next: benchmark against `token_first_transformer` once trained.
 2. **Borrow components:** add a `marketglot/common/` transformer with
    RoPE+RMSNorm+SwiGLU, calendar embeddings, and local-window norm; retrofit
    `token_first_transformer`.
