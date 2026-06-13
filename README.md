@@ -38,17 +38,23 @@ microstructure that candles throw away.
             ┌─────────────────────────┐
  candles ──▶│ token_first_transformer  │──┐
             └─────────────────────────┘  │
-                                          ├─▶ multimodal_encoder ─▶ moe_trading_agent
-            ┌─────────────────────────┐  │
+            ┌─────────────────────────┐  ├─▶ multimodal_encoder ─▶ moe_trading_agent
 indicators▶ │   indicator_tokenizer    │──┤
-            └─────────────────────────┘  │
-                                          └─▶ late_fusion_agent
+            └─────────────────────────┘  ├─▶ late_fusion_agent
+            ┌─────────────────────────┐  │
+footprints▶ │    footprint_encoder     │──┘   (new 4th modality)
+            └─────────────────────────┘
 
             ┌─────────────────────────┐
 order book▶ │    orderbook_encoder     │──▶ diffusion_orderbook ─▶ transformer_diffusion_fusion
-            └─────────────────────────┘                                    ▲
+            └─────────────────────────┘      (diffusion decoder)            ▲
                                           token_first_transformer ─────────┘
 ```
+
+The diffusion track (projects 7–8) is informed by recent **diffusion language
+models** (Gemini Diffusion, LLaDA) and **diffusion-for-LOB** research — parallel
+denoising instead of autoregression, for higher local throughput. See
+[`docs/research/diffusion-llms.md`](docs/research/diffusion-llms.md).
 
 ---
 
@@ -62,11 +68,13 @@ order book▶ │    orderbook_encoder     │──▶ diffusion_orderbook ─�
 | 4 | [`orderbook_encoder`](orderbook_encoder/) | Reconstruct the L2 book from warehouse snapshots+deltas, encode top-20 levels with a deep MLP → 64-dim embedding | 46 | ✅ Code complete · smoke-trained on real data |
 | 5 | [`multimodal_encoder`](multimodal_encoder/) | One end-to-end transformer over candle **and** indicator tokens via separate encoders + fusion | 8 | ✅ Code complete |
 | 6 | [`moe_trading_agent`](moe_trading_agent/) | Mixture-of-Experts transformer with sparse top-k routing and load-balancing loss | 19 | ✅ Code complete |
-| 7 | `diffusion_orderbook` | Diffusion model over order-book microstructure, conditioned on price-action context | — | 🔲 Not started |
-| 8 | `transformer_diffusion_fusion` | Transformer context + diffusion decoder + decision head (most complex) | — | 🔲 Not started |
+| 7 | [`diffusion_orderbook`](diffusion_orderbook/) | Diffusion model over order-book microstructure, conditioned on price-action context; inpainting-based forecasting | — | 📐 Design ([SPEC](diffusion_orderbook/SPEC.md)) |
+| 8 | [`transformer_diffusion_fusion`](transformer_diffusion_fusion/) | Transformer context + diffusion decoder + decision head (most complex) | — | 📐 Design ([SPEC](transformer_diffusion_fusion/SPEC.md)) |
+| 9 | [`footprint_encoder`](footprint_encoder/) | Footprint / cluster-chart modality — volume-at-price per bar split by aggressor side (buy/sell), encoded over a bar sequence | — | 📐 Design ([SPEC](footprint_encoder/SPEC.md)) |
 
 Full per-project descriptions and the dependency graph live in
-[`projects.md`](projects.md).
+[`projects.md`](projects.md). The diffusion direction is written up in
+[`docs/research/diffusion-llms.md`](docs/research/diffusion-llms.md).
 
 ---
 
@@ -75,7 +83,7 @@ Full per-project descriptions and the dependency graph live in
 ```
 marketglot/                    # (local workspace dir: w_training/)
 ├── README.md                  ← you are here
-├── projects.md                ← detailed catalog of all 8 projects + status table
+├── projects.md                ← detailed catalog of all 9 projects + status table
 ├── LICENSE                    ← MIT
 ├── docs/                      ← deeper documentation (RU): data sources, Colab, workflow
 │   ├── README.md
@@ -83,16 +91,21 @@ marketglot/                    # (local workspace dir: w_training/)
 │   ├── repository.md
 │   ├── colab.md
 │   ├── training_workflow.md
+│   ├── research/             ← research notes (EN), e.g. diffusion-llms.md
 │   └── superpowers/           ← historical design specs & plans
 ├── kaggle_notebooks/          ← Kaggle kernel metadata + generated notebooks
 ├── tasks/                     ← notebook generators & smoke-test scripts
 │
 ├── token_first_transformer/   ┐
 ├── indicator_tokenizer/       │
-├── late_fusion_agent/         │ one self-contained PyTorch project per directory
-├── orderbook_encoder/         │ (code · configs · tests · notebook)
+├── late_fusion_agent/         │ implemented projects — one self-contained
+├── orderbook_encoder/         │ PyTorch project per dir (code · configs · tests · notebook)
 ├── multimodal_encoder/        │
-└── moe_trading_agent/         ┘
+├── moe_trading_agent/         ┘
+│
+├── diffusion_orderbook/       ┐
+├── transformer_diffusion_fusion/ │ design stage — SPEC.md + README.md only (no code yet)
+└── footprint_encoder/         ┘
 ```
 
 Each project directory follows the same shape:
@@ -115,6 +128,7 @@ Each project directory follows the same shape:
 |----------|--------|-------|
 | OHLCV klines (1m) | Local `w_trender/backtests/data/` | `YYYY-MM.parquet` per symbol, 262 symbols (~43 GB). |
 | L2 order book | Prod warehouse API — `warehouse.marketmaker.cc` (anonymous S3) | Hourly snapshot + delta parquet; live collector since **2026-06-01**. Deep history via [CryptoHFTData](https://cryptohftdata.com). |
+| Trades | Warehouse `{SYMBOL}/trades/*.parquet` (S3 / server) | Schema `timestamp_ms, price, qty` — **no aggressor side**, sparse. Footprint buy/sell volume is therefore inferred from L2-delta order flow (see `footprint_encoder/SPEC.md`). |
 
 Raw data, downloaded datasets, checkpoints, and training artifacts are **not
 committed** (see [`.gitignore`](.gitignore)) — every project re-fetches or
@@ -185,7 +199,8 @@ strategies to deploy.
 
 ## Documentation
 
-- [`projects.md`](projects.md) — detailed catalog of all eight projects
+- [`projects.md`](projects.md) — detailed catalog of all nine projects
+- [`docs/research/diffusion-llms.md`](docs/research/diffusion-llms.md) — diffusion LMs & diffusion-for-markets (the diffusion direction)
 - [`docs/data_sources.md`](docs/data_sources.md) — where the data comes from
 - [`docs/repository.md`](docs/repository.md) — repository map (RU)
 - [`docs/training_workflow.md`](docs/training_workflow.md) — recommended experiment order (RU)

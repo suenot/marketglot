@@ -100,27 +100,41 @@ Full MoE architecture where different "experts" specialize in different market r
 
 ## Project 7: `diffusion_orderbook` — Diffusion Model for Microstructure
 
-**Status:** Not started. Data blocker lifted — order book data available via warehouse API (see `docs/data_sources.md`); reuse the `orderbook_encoder` data pipeline.
+**Status:** Design stage — see [`diffusion_orderbook/SPEC.md`](diffusion_orderbook/SPEC.md). Order book data available via warehouse API (see `docs/data_sources.md`); reuses the `orderbook_encoder` data pipeline.
 
-- Forward process: add Gaussian noise to order book state
-- Reverse process: learn to denoise, recovering distribution
-- Conditioning: on current price action context (from candle encoder)
+Two tracks (see [`docs/research/diffusion-llms.md`](docs/research/diffusion-llms.md)):
 
-**Dependencies:** order book data (blocked).
+- **Track A (primary):** continuous DDPM/DDIM over order-book state vectors or a windowed "LOB-image"; denoiser conditioned on candle context (from `token_first_transformer`) via FiLM/cross-attention. Forecasting via **inpainting** the future window → mid path → 3 classes; plus a linear probe and a "microstructure surprise" score for repo-comparable evaluation.
+- **Track B (v2):** discrete/masked token diffusion (LLaDA/MaskGIT style) over the market-token language for fast parallel generation — the Gemini-Diffusion direction.
+
+**Dependencies:** projects 1 (candle context) and 4 (order book data pipeline).
 
 ---
 
 ## Project 8: `transformer_diffusion_fusion` — Combined Architecture
 
-**Status:** Not started — depends on projects 4 (orderbook_encoder, complete) and 7 (diffusion_orderbook, not started).
+**Status:** Design stage — see [`transformer_diffusion_fusion/SPEC.md`](transformer_diffusion_fusion/SPEC.md). Most complex project.
 
-Most complex project.
+- Transformer encoder: candle (+ optional indicator/footprint) tokens → context vector `c`
+- Diffusion decoder (from project 7): conditioned on `c`, yields distribution features — denoiser hidden state, statistics of K sampled futures, and/or conditional "surprise" at the observed book
+- Decision head: MLP over `[c ⊕ distribution-features ⊕ current-book-embedding]` → 3 logits
+- Training: two-stage (recommended) or joint multi-task (`CE + λ·diffusion-MSE`)
 
-- Transformer encoder: candle token sequences → context vector
-- Diffusion decoder: conditioned on context, generates order book distribution
-- Decision head: uses both context and distribution features for prediction
+**Dependencies:** projects 1, 4, 7 (+ optional 5, 9).
 
-**Dependencies:** projects 1, 4, 8 (blocked chain).
+---
+
+## Project 9: `footprint_encoder` — Footprint / Cluster-Chart Modality
+
+**Status:** Design stage — see [`footprint_encoder/SPEC.md`](footprint_encoder/SPEC.md). A new 4th market modality.
+
+Encodes the **footprint** (volume-at-price per bar, split by aggressive BUY vs SELL) into a per-bar embedding → transformer over bars → 3-class head.
+
+- **Side attribution (pluggable):** trades carry no aggressor side and are sparse, so the primary source is **order-flow inferred from L2 deltas** (ask-side consumption ≈ aggressive buys, bid-side ≈ sells — an approximation); quote-rule (trades vs reconstructed best bid/ask) and tick-rule as cross-checks; synthetic for notebooks. See `docs/data_sources.md`.
+- **Per-bar features:** buy/sell/delta per price bin, cumulative delta, POC, imbalance stacks, value area, unfinished-auction flags.
+- **Two representations:** footprint-as-image (CNN/MLP) and tokenized "footprint language" (feeds late-fusion / multimodal / MoE and the discrete-diffusion track).
+
+**Dependencies:** project 4 (book reconstruction for side attribution); feeds projects 3, 5, 6, 8.
 
 ---
 
@@ -129,8 +143,9 @@ Most complex project.
 ```
 token_first_transformer ──┐
                           ├── multimodal_encoder ── moe_trading_agent
-indicator_tokenizer ──────┘
+indicator_tokenizer ──────┤
                           ├── late_fusion_agent
+footprint_encoder ────────┘   (new 4th modality)
 
 orderbook_encoder ──────── diffusion_orderbook ── transformer_diffusion_fusion
                                                         │
@@ -147,8 +162,11 @@ token_first_transformer ──────────────────�
 | 4 | orderbook_encoder | 46 | Code complete, smoke-trained on real data |
 | 5 | multimodal_encoder | 8 | Code complete |
 | 6 | moe_trading_agent | 19 | Code complete |
-| 7 | diffusion_orderbook | — | Not started (data available) |
-| 8 | transformer_diffusion_fusion | — | Not started (depends on 4, 7) |
+| 7 | diffusion_orderbook | — | Design stage ([SPEC](diffusion_orderbook/SPEC.md)) |
+| 8 | transformer_diffusion_fusion | — | Design stage ([SPEC](transformer_diffusion_fusion/SPEC.md)) |
+| 9 | footprint_encoder | — | Design stage ([SPEC](footprint_encoder/SPEC.md)) |
+
+**Research:** diffusion language models & diffusion for markets — see [`docs/research/diffusion-llms.md`](docs/research/diffusion-llms.md).
 
 **Data sources:** OHLCV klines locally in `w_trender/backtests/data/`; L2 order book via the prod warehouse API / anonymous S3 (collector live since 2026-06-01) or CryptoHFTData for deep history — see `docs/data_sources.md`.
 

@@ -10,7 +10,8 @@
 | [Источники данных](data_sources.md) | Klines локально, L2 ордербук через warehouse API / CryptoHFTData |
 | [Colab-ноутбуки](colab.md) | Пути к `.ipynb`, среда, Google Drive, артефакты, пересборка |
 | [Порядок запуска экспериментов](training_workflow.md) | Рекомендуемая последовательность и что сравнивать |
-| [Обзор проектов](../projects.md) | Краткое описание всех 8 направлений (в корне) |
+| [Обзор проектов](../projects.md) | Краткое описание всех 9 направлений (в корне) |
+| [Ресёрч: diffusion-модели](research/diffusion-llms.md) | Diffusion LM (Gemini Diffusion, LLaDA) и diffusion для рынков — направление проектов 7–8 |
 | [Спека token-first (design)](superpowers/specs/2026-04-21-token-transformer-trading-agent-design.md) | Исторический design-doc |
 
 ## Быстрые ссылки
