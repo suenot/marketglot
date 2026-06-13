@@ -74,10 +74,12 @@ MPS (batch 16 ≈ 2.5 steps/s; batch 32 ≈ 1.3 steps/s). Tokenizer finetune is 
 (its BSQ entropy uses `scatter_reduce`/`multinomial`, riskier on MPS); the pretrained
 tokenizer is reused. See [`kronos_baseline/finetune/`](../../kronos_baseline/finetune/).
 
-**Full run (in progress):** Kronos-small predictor on **BTCUSDT, 12 months**
-(525k 1m bars, batch 32, lookback 256, horizon 60, **1 epoch**) — ~14.8k steps,
-ETA ~3 h on MPS. Results + honest re-evaluation (out-of-sample / out-of-symbol vs
-the zero-shot 0.583 directional) to follow once it finishes.
+**Incremental finetune:** a full 12-month epoch is ~3 h on MPS, and the upstream
+loop only checkpoints at epoch end — so we train in **short ~30-min epochs with
+auto-resume** (each run continues from the last `best_model`). See
+`kronos_baseline/finetune/` (≈55-day slice ≈ one 30-min epoch). Honest
+re-evaluation (out-of-symbol / out-of-time vs the zero-shot 0.583 directional)
+once a finetuned checkpoint accumulates enough passes.
 
 ---
 

@@ -53,6 +53,8 @@ def main() -> None:
     ap.add_argument("--num-workers", type=int, default=0)
     ap.add_argument("--finetune-tokenizer", action="store_true",
                     help="also finetune the tokenizer (riskier on MPS); default off")
+    ap.add_argument("--no-resume", action="store_true",
+                    help="ignore an existing checkpoint in --out-dir (start from the pretrained model)")
     ap.add_argument("--device", default=None, help="override device (mps/cpu/cuda)")
     a = ap.parse_args()
 
@@ -73,7 +75,14 @@ def main() -> None:
             return snapshot_download(repo_id=repo, local_files_only=True)  # offline: cache only
 
     tok_dir = resolve_repo(a.pretrained_tokenizer)
-    pred_dir = resolve_repo(a.pretrained_predictor)
+    # auto-resume: continue from a previously saved checkpoint in this out-dir, so
+    # repeated short (~30 min) runs accumulate instead of restarting from scratch.
+    resume_ckpt = out_dir / "mps_finetune" / "basemodel" / "best_model"
+    if (not a.no_resume) and (resume_ckpt / "config.json").exists():
+        pred_dir = str(resume_ckpt)
+        print(f"RESUMING predictor from existing checkpoint: {pred_dir}")
+    else:
+        pred_dir = resolve_repo(a.pretrained_predictor)
     print(f"tokenizer: {tok_dir}\npredictor: {pred_dir}")
 
     # 2) build config
