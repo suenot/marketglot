@@ -119,9 +119,10 @@ it with a *diffusion* decoder for throughput.
 
 ## Suggested integration roadmap
 
-1. **Baseline now (no training):** wrap `KronosPredictor` as a marketglot baseline
-   — forecast → derive UP/FLAT/DOWN with our horizon/threshold, MC paths → class
-   probabilities. Benchmark against `token_first_transformer` once that is trained.
+1. **Baseline now (no training):** ✅ done — `kronos_baseline/` wraps
+   `KronosPredictor` into a marketglot 3-class signal (forecast → UP/FLAT/DOWN with
+   our horizon/threshold, MC paths → class probabilities). Run locally on BTCUSDT.
+   Next: benchmark against `token_first_transformer` once that is trained.
 2. **Borrow components:** add a `marketglot/common/` transformer with
    RoPE+RMSNorm+SwiGLU, calendar embeddings, and local-window norm; retrofit
    `token_first_transformer`.

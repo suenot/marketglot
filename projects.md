@@ -138,6 +138,18 @@ Encodes the **footprint** (volume-at-price per bar, split by aggressive BUY vs S
 
 ---
 
+## Baselines
+
+### `kronos_baseline` — external Kronos → 3-class signal
+
+**Status:** Implemented & run locally. Wrapper (not one of the nine architectures) around the third-party MIT model **Kronos** (candles-as-language foundation model). Loads Kronos once, forecasts `horizon` candles with Monte-Carlo sampling, and reduces to a marketglot 3-class signal (DOWN/FLAT/UP, `[DOWN=0, FLAT=1, UP=2]`) + class probabilities.
+
+- Kronos is **not vendored** — clone it and set `KRONOS_PATH` (auto-detects sibling `../Kronos`).
+- CLI runs on our klines; library API is `KronosSignal.predict_signal(...) -> SignalResult`.
+- Background & analysis: [`docs/research/kronos.md`](docs/research/kronos.md).
+
+---
+
 ## Dependency Graph
 
 ```

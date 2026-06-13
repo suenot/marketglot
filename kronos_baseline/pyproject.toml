@@ -1,0 +1,23 @@
+[project]
+name = "kronos-baseline"
+version = "0.1.0"
+description = "Wrapper around the external Kronos foundation model -> marketglot 3-class signal"
+requires-python = ">=3.10"
+# Kronos itself is NOT a dependency here (it ships as a repo, not a package):
+# clone it and set KRONOS_PATH. These are the runtime deps the wrapper + Kronos need.
+dependencies = [
+    "torch>=2.0",
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "pyarrow>=15.0",
+    "einops>=0.8",
+    "huggingface_hub>=0.33",
+    "safetensors>=0.6",
+    "tqdm>=4.67",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -105,7 +105,9 @@ marketglot/                    # (local workspace dir: w_training/)
 │
 ├── diffusion_orderbook/       ┐
 ├── transformer_diffusion_fusion/ │ design stage — SPEC.md + README.md only (no code yet)
-└── footprint_encoder/         ┘
+├── footprint_encoder/         ┘
+│
+└── kronos_baseline/           ← runnable baseline: external Kronos → 3-class signal
 ```
 
 Each project directory follows the same shape:
@@ -202,6 +204,7 @@ strategies to deploy.
 - [`projects.md`](projects.md) — detailed catalog of all nine projects
 - [`docs/research/diffusion-llms.md`](docs/research/diffusion-llms.md) — diffusion LMs & diffusion-for-markets (the diffusion direction)
 - [`docs/research/kronos.md`](docs/research/kronos.md) — analysis of Kronos (candles-as-language foundation model) & what to adopt
+- [`kronos_baseline/`](kronos_baseline/) — runnable baseline wrapping Kronos into a marketglot 3-class signal
 - [`docs/data_sources.md`](docs/data_sources.md) — where the data comes from
 - [`docs/repository.md`](docs/repository.md) — repository map (RU)
 - [`docs/training_workflow.md`](docs/training_workflow.md) — recommended experiment order (RU)
