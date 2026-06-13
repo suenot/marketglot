@@ -45,6 +45,11 @@ over 8 months of `klines_1m` (pulled from server1). Kronos-small, lookback 400,
 Class balance was DOWN 0.33 / FLAT 0.29 / UP 0.38; per-symbol accuracy ranged
 0.30–0.50. The model rarely predicts FLAT correctly (31/141) and leans UP.
 
+**Shorter horizons don't help** (zero-shot sweep, 200 windows × 8 symbols):
+directional accuracy was 0.47 at h=5 (±0.05%) and 0.38 at h=15 (±0.08%) — at or
+below a coin flip, worse than h=60. So the marginal edge isn't recovered by
+shortening the horizon.
+
 **Honest read:** zero-shot Kronos gives only a **marginal edge** on crypto 1m at a
 60-minute horizon — directional ~58% (barely above a coin flip) and point-forecast
 MAE worse than "price doesn't move" (expected: 60×1m is near-martingale, and Kronos
@@ -52,6 +57,22 @@ was pre-trained mostly on non-crypto / coarser bars). Not usable as-is as a sign
 Candidates to improve: **finetune on our symbols**, shorter horizon (5–15 candles),
 confidence-gating on the MC class probabilities, or use Kronos embeddings as a
 *feature* into our fusion/MoE models rather than a standalone predictor.
+
+---
+
+## Finetune on Apple GPU (MPS, 2026-06-13)
+
+Kronos's `finetune_csv` pipeline selects **CUDA-or-CPU only** — on a Mac that means
+CPU, which is pointless when an Apple GPU is available. There are **no CUDA-only ops**
+in its train loops (no AMP/GradScaler/`.cuda()`; DDP is off for a single process),
+so `kronos_baseline/finetune/run_finetune_mps.py` reuses its `SequentialTrainer`
+unchanged and just **forces `device = mps`** (with `PYTORCH_ENABLE_MPS_FALLBACK=1`).
+
+**Verified:** predictor finetune of Kronos-small on BTCUSDT 1m ran on `Device: mps`
+at **~2.5 steps/s**, loss decreasing (2.39 → ~2.25 over ~120 steps) — training
+really uses the GPU. Tokenizer finetune is opt-in (its BSQ entropy uses
+`scatter_reduce`/`multinomial`, riskier on MPS); the pretrained tokenizer is reused.
+See [`kronos_baseline/finetune/`](../../kronos_baseline/finetune/).
 
 ---
 
@@ -155,8 +176,10 @@ it with a *diffusion* decoder for throughput.
    `token_first_transformer`.
 3. **Learned tokenizer:** prototype a BSQ candle tokenizer (LFQ, s1/s2 split) as a
    drop-in alternative to the quantile tokenizers; evaluate downstream.
-4. **Finetune Kronos** on our symbols (the repo ships a finetune pipeline) and/or
-   use its embeddings as a modality into `late_fusion` / `multimodal` / `moe`.
+4. **Finetune Kronos** on our symbols — MPS launcher ready & smoke-verified on Apple
+   GPU (see [Finetune on Apple GPU](#finetune-on-apple-gpu-mps-2026-06-13) and
+   `kronos_baseline/finetune/`). Next: full finetune on BTCUSDT, then re-evaluate.
+   Also consider Kronos embeddings as a modality into `late_fusion`/`multimodal`/`moe`.
 5. **Diffusion fusion:** Kronos tokenizer → discrete-diffusion head (Track B) for
    fast parallel forecasting; feed into `transformer_diffusion_fusion`.
 
