@@ -166,7 +166,7 @@ token_first_transformer ──────────────────�
 | 8 | transformer_diffusion_fusion | — | Design stage ([SPEC](transformer_diffusion_fusion/SPEC.md)) |
 | 9 | footprint_encoder | — | Design stage ([SPEC](footprint_encoder/SPEC.md)) |
 
-**Research:** diffusion language models & diffusion for markets — see [`docs/research/diffusion-llms.md`](docs/research/diffusion-llms.md).
+**Research:** diffusion language models & diffusion for markets — see [`docs/research/diffusion-llms.md`](docs/research/diffusion-llms.md); analysis of **Kronos** (candles-as-language foundation model) and what to adopt — see [`docs/research/kronos.md`](docs/research/kronos.md).
 
 **Data sources:** OHLCV klines locally in `w_trender/backtests/data/`; L2 order book via the prod warehouse API / anonymous S3 (collector live since 2026-06-01) or CryptoHFTData for deep history — see `docs/data_sources.md`.
 

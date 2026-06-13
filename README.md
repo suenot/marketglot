@@ -201,6 +201,7 @@ strategies to deploy.
 
 - [`projects.md`](projects.md) — detailed catalog of all nine projects
 - [`docs/research/diffusion-llms.md`](docs/research/diffusion-llms.md) — diffusion LMs & diffusion-for-markets (the diffusion direction)
+- [`docs/research/kronos.md`](docs/research/kronos.md) — analysis of Kronos (candles-as-language foundation model) & what to adopt
 - [`docs/data_sources.md`](docs/data_sources.md) — where the data comes from
 - [`docs/repository.md`](docs/repository.md) — repository map (RU)
 - [`docs/training_workflow.md`](docs/training_workflow.md) — recommended experiment order (RU)
