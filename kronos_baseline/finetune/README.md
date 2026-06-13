@@ -46,4 +46,17 @@ Smoke run on BTCUSDT 1m (20 days, Kronos-small, batch 16, lookback 256, horizon 
 ran on **`Device: mps`** at **~2.5 steps/s** with the loss decreasing
 (2.39 → ~2.25 over the first ~120 steps) — i.e. training really uses the Apple GPU.
 
+Throughput on MPS ≈ **42 samples/s** (Kronos-small): batch 16 ≈ 2.5 steps/s,
+batch 32 ≈ 1.3 steps/s. So a 12-month BTCUSDT finetune (~525k bars) is ~3 h/epoch.
+A full run (12 months, 1 epoch, batch 32) example:
+
+```bash
+python kronos_baseline/finetune/prepare_csv.py --symbol BTCUSDT --days 365 \
+    --out kronos_baseline/finetune/data/BTCUSDT_1m_12mo.csv
+KRONOS_PATH=../Kronos python kronos_baseline/finetune/run_finetune_mps.py \
+    --csv kronos_baseline/finetune/data/BTCUSDT_1m_12mo.csv \
+    --out-dir kronos_baseline/finetune/runs/btc_full \
+    --epochs 1 --batch-size 32 --lookback 256 --predict 60 --lr 2e-5
+```
+
 Part of the [marketglot](../../README.md) monorepo. Background: [`docs/research/kronos.md`](../../docs/research/kronos.md).

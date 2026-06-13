@@ -68,11 +68,16 @@ in its train loops (no AMP/GradScaler/`.cuda()`; DDP is off for a single process
 so `kronos_baseline/finetune/run_finetune_mps.py` reuses its `SequentialTrainer`
 unchanged and just **forces `device = mps`** (with `PYTORCH_ENABLE_MPS_FALLBACK=1`).
 
-**Verified:** predictor finetune of Kronos-small on BTCUSDT 1m ran on `Device: mps`
-at **~2.5 steps/s**, loss decreasing (2.39 → ~2.25 over ~120 steps) — training
-really uses the GPU. Tokenizer finetune is opt-in (its BSQ entropy uses
-`scatter_reduce`/`multinomial`, riskier on MPS); the pretrained tokenizer is reused.
-See [`kronos_baseline/finetune/`](../../kronos_baseline/finetune/).
+**Verified:** predictor finetune of Kronos-small on BTCUSDT 1m ran on `Device: mps`,
+loss decreasing — training really uses the GPU. Throughput ≈ **42 samples/s** on
+MPS (batch 16 ≈ 2.5 steps/s; batch 32 ≈ 1.3 steps/s). Tokenizer finetune is opt-in
+(its BSQ entropy uses `scatter_reduce`/`multinomial`, riskier on MPS); the pretrained
+tokenizer is reused. See [`kronos_baseline/finetune/`](../../kronos_baseline/finetune/).
+
+**Full run (in progress):** Kronos-small predictor on **BTCUSDT, 12 months**
+(525k 1m bars, batch 32, lookback 256, horizon 60, **1 epoch**) — ~14.8k steps,
+ETA ~3 h on MPS. Results + honest re-evaluation (out-of-sample / out-of-symbol vs
+the zero-shot 0.583 directional) to follow once it finishes.
 
 ---
 
