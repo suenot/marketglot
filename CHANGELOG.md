@@ -6,7 +6,19 @@ All notable changes to the marketglot research projects are recorded here.
 
 ### Changed
 
-- Document the first resumable BTCUSDT 1m training run and its checkpoint location.
+- Document the first resumable BTCUSDT 1m training run, checkpoint location,
+  and negative held-out trading result.
+
+## 0.2.0 - 2026-09-25
+
+### Added
+
+- Allow optional balanced class weights for token-first training, calculated from
+  timestamp-valid training windows only.
+
+### Fixed
+
+- Point the token-first default config at the actual server1 klines root.
 
 ## 0.1.3 - 2026-09-25
 

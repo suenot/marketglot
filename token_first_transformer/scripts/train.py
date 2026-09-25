@@ -30,6 +30,16 @@ def seed_all(seed: int) -> None:
         torch.mps.manual_seed(seed)
 
 
+def configured_class_weights(training_cfg: dict, train_ds: KlinesDataset,
+                             num_classes: int) -> list[float] | None:
+    mode = training_cfg.get("class_weighting", "none")
+    if mode is None or mode == "none":
+        return None
+    if mode != "balanced":
+        raise ValueError(f"Unsupported training.class_weighting: {mode!r}")
+    return compute_class_weights(train_ds.labels(), num_classes=num_classes)
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
@@ -81,6 +91,9 @@ def main():
     val_dl = DataLoader(val_ds, batch_size=cfg["training"]["batch_size"], shuffle=False, num_workers=0)
 
     model_cfg = cfg["model"]
+    class_weights = configured_class_weights(cfg["training"], train_ds, model_cfg["num_classes"])
+    if class_weights is not None:
+        print(f"Class weights: {class_weights}")
     model = PriceTransformer(
         delta_vocab_size=model_cfg["delta_vocab_size"],
         bucket_vocab_size=model_cfg["bucket_vocab_size"],
@@ -99,6 +112,7 @@ def main():
 
     trainer = Trainer(
         model=model, train_loader=train_dl, val_loader=val_dl,
+        class_weights=class_weights,
         epochs=cfg["training"]["epochs"],
         lr=cfg["training"]["learning_rate"],
         weight_decay=cfg["training"]["weight_decay"],

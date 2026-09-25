@@ -1,7 +1,7 @@
 data:
   symbol: BTCUSDT
   timeframe: 1m
-  data_dir: /Users/suenot/projects/w_trading/w_trender/backtests/data
+  data_dir: /mnt/second/trender/backtests/data
   train_months: ["2023-02", "2025-06"]
   val_months: ["2025-07", "2025-10"]
   test_months: ["2025-11", "2026-02"]
@@ -31,6 +31,7 @@ model:
   num_classes: 3
 
 training:
+  class_weighting: none
   batch_size: 64
   grad_accum_steps: 2
   learning_rate: 3.0e-4

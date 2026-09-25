@@ -11,12 +11,12 @@ Each project lives in its own subdirectory: `w_training/<project_name>/`.
 
 ## Project 1: `token_first_transformer` — MVP
 
-**Status:** Code complete. 45 tests pass. BTCUSDT 1m training started on 2026-09-25; held-out results pending.
+**Status:** Code complete. 48 tests pass. The first BTCUSDT 1m held-out test reached weighted F1 0.4212 but lost 87.67% after commissions; this is research, not a trading signal.
 
 Token-based transformer classifier. Discretizes price deltas into tokens — "market language" — trains small Transformer on BTCUSDT 1m candles for 3-class prediction (UP/FLAT/DOWN).
 
 - Input: 3 token streams (price delta, volatility bucket, volume bucket), 128 candles context
-- Model: 4-layer transformer, 8 heads, dim=256, ~5-7M params
+- Model: 4-layer transformer, 8 heads, dim=256, ~3.26M params
 - Target: 60-candle horizon, thresholds ±0.15%
 - Train: AdamW, CosineAnnealing, 5-10 epochs, MPS float32
 - Backtest: sequential, SL/TP/max-hold, 0.04% commission
@@ -168,7 +168,7 @@ token_first_transformer ──────────────────�
 
 | # | Project | Tests | Status |
 |---|---------|-------|--------|
-| 1 | token_first_transformer | 45 | Code complete |
+| 1 | token_first_transformer | 48 | Code complete; held-out trading result negative |
 | 2 | indicator_tokenizer | 15 | Code complete, boundaries fitted |
 | 3 | late_fusion_agent | 14 | Code complete |
 | 4 | orderbook_encoder | 49 | Code complete, smoke-trained on real data |

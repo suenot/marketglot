@@ -5,7 +5,6 @@ import math
 import random
 import tempfile
 from pathlib import Path
-from collections import Counter
 
 import numpy as np
 import torch
@@ -19,14 +18,9 @@ from sklearn.metrics import f1_score
 from models.price_transformer import PriceTransformer
 
 
-def compute_class_weights(labels: list[int], num_classes: int = 3) -> list[float]:
-    counts = Counter(labels)
-    total = len(labels)
-    weights = []
-    for c in range(num_classes):
-        cnt = counts.get(c, 1)
-        weights.append(total / (num_classes * cnt))
-    return weights
+def compute_class_weights(labels: list[int] | np.ndarray, num_classes: int = 3) -> list[float]:
+    counts = np.bincount(np.asarray(labels, dtype=np.int64), minlength=num_classes)
+    return (len(labels) / (num_classes * np.maximum(counts[:num_classes], 1))).tolist()
 
 
 class ResumableRandomSampler(Sampler[int]):

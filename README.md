@@ -62,7 +62,7 @@ denoising instead of autoregression, for higher local throughput. See
 
 | # | Project | Idea | Tests | Status |
 |---|---------|------|:-----:|--------|
-| 1 | [`token_first_transformer`](token_first_transformer/) | Discretize price deltas / vol / volume into tokens, train a small transformer classifier | 45 | ✅ Code complete |
+| 1 | [`token_first_transformer`](token_first_transformer/) | Discretize price deltas / vol / volume into tokens, train a small transformer classifier | 48 | ✅ Code complete · first held-out trading result negative |
 | 2 | [`indicator_tokenizer`](indicator_tokenizer/) | Quantile-bucketize technical indicators (RSI, MACD, BB %B, ATR, VR, PVS) into per-indicator vocabularies | 15 | ✅ Code complete · boundaries fitted |
 | 3 | [`late_fusion_agent`](late_fusion_agent/) | Train one model per modality, fuse their logits with a lightweight meta-model | 14 | ✅ Code complete |
 | 4 | [`orderbook_encoder`](orderbook_encoder/) | Reconstruct the L2 book from warehouse snapshots+deltas, encode top-20 levels with a deep MLP → 64-dim embedding | 49 | ✅ Code complete · smoke-trained on real data |

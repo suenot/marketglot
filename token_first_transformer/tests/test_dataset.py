@@ -5,6 +5,7 @@ import pyarrow.parquet as pq
 from pathlib import Path
 from dataset.klines_dataset import (KlinesDataset, fit_tokenizers, make_split,
                                     save_tokenizers, load_tokenizers)
+from scripts.train import configured_class_weights
 
 
 @pytest.fixture
@@ -48,6 +49,27 @@ def test_windows_do_not_cross_missing_minutes(sample_parquet, tmp_path):
     ds = KlinesDataset([path], seq_len=64, target_horizon=10)
     assert len(ds) < 500 - 64 - 10 + 1
     assert all(not (start <= 249 < start + 64 + 10 - 1) for start in ds.sample_starts)
+
+
+def test_vectorized_labels_and_balanced_weights_match_valid_samples(sample_parquet, tmp_path):
+    table = pq.read_table(sample_parquet)
+    timestamps = table["timestamp"].to_numpy().copy()
+    timestamps[250:] += 60 * 10
+    columns = {name: table[name] for name in table.column_names}
+    columns["timestamp"] = pa.array(timestamps)
+    path = tmp_path / "gapped-labels.parquet"
+    pq.write_table(pa.table(columns), path)
+    ds = KlinesDataset([path], seq_len=64, target_horizon=10)
+
+    labels = np.array([ds[i][3] for i in range(len(ds))])
+    np.testing.assert_array_equal(ds.labels(), labels)
+    counts = np.bincount(labels, minlength=3)
+    expected = len(ds) / (3 * np.maximum(counts, 1))
+    np.testing.assert_allclose(configured_class_weights({"class_weighting": "balanced"}, ds, 3), expected)
+    assert configured_class_weights({}, ds, 3) is None
+    assert configured_class_weights({"class_weighting": "none"}, ds, 3) is None
+    with pytest.raises(ValueError, match="class_weighting"):
+        configured_class_weights({"class_weighting": "invalid"}, ds, 3)
 
 
 def test_dataset_item_shape(sample_parquet):

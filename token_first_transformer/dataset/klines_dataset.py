@@ -109,6 +109,15 @@ class KlinesDataset:
     def __len__(self) -> int:
         return self._len
 
+    def labels(self) -> np.ndarray:
+        """Return labels for exactly the timestamp-valid training windows."""
+        ends = self.sample_starts + self.seq_len
+        current_close = self.closes[ends - 1]
+        target_close = self.closes[ends + self.target_horizon - 1]
+        delta = (target_close - current_close) / current_close
+        return np.where(delta > self.target_threshold, 2,
+                        np.where(delta < -self.target_threshold, 0, 1))
+
     def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
         start = int(self.sample_starts[idx])
         end = start + self.seq_len

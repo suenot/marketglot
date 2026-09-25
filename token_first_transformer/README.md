@@ -16,7 +16,7 @@ model learns over word tokens.
 ## Architecture
 
 - 4-layer `TransformerEncoder`, 8 attention heads, hidden dim 256, GELU FFN of
-  width 1024, dropout 0.1 (~5-7M params).
+  width 1024, dropout 0.1 (~3.26M params).
 - Three embedding tables, concatenated then projected to the hidden dim:
   - **delta** — price-delta token, vocab 122 (`±3.0%` range, `0.05%` step → 120
     bins + PAD + CLS), embedding dim 64.
@@ -94,16 +94,25 @@ Set `training.checkpoint_every_steps` for a different save interval.
 Training uses AdamW with cosine annealing over up to 10 epochs (early stopping
 on weighted F1), device `auto` (MPS / CUDA / CPU). The backtest runs sequentially
 with `-0.5%` stop-loss, `+1.0%` take-profit, 60-candle max hold, and `0.04%`
-commission per side. Note that `configs/default.yaml` points `data.data_dir` at
-a local parquet directory of BTCUSDT 1m klines that you must supply.
+commission per side. `configs/default.yaml` points `data.data_dir` at the
+server1 BTCUSDT parquet root (`/mnt/second/trender/backtests/data`); override
+that path in a separate config when running on a Mac or another machine.
+
+Set `training.class_weighting: balanced` to use inverse-frequency loss weights
+from the training split's valid windows. The default `none` keeps unweighted
+cross-entropy. Keep the same setting when resuming a checkpoint.
 
 ## Status
 
-Code complete; 45 tests pass. A BTCUSDT 1m training run started on 2026-09-25
-using the chronological splits in `configs/default.yaml`. Its run manifest and
-durable checkpoints are on server1 at
+Code complete; 48 tests pass. A BTCUSDT 1m run on 2026-09-25 used the
+chronological splits in `configs/default.yaml`. Its run manifest and durable
+checkpoints are on server1 at
 `/mnt/third/projects/trading/training/checkpoints/clore-btc1m-20260925T0840Z/`.
-Held-out test and cost-adjusted backtest results have not been measured yet.
+The full-history model reached weighted F1 0.4206 on validation and 0.4212 on
+the held-out test. The test backtest returned -87.67% with 0.04% commission per
+fill, or -99.10% when adding an assumed 0.05% slippage per fill. The current
+classifier is not a viable trading strategy; F1 is not a substitute for
+cost-adjusted validation. A separate recent-history experiment is in progress.
 
 ---
 
