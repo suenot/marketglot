@@ -7,7 +7,7 @@ All notable changes to the marketglot research projects are recorded here.
 ### Changed
 
 - Document the first resumable BTCUSDT 1m training run, checkpoint location,
-  and negative held-out trading result.
+  negative held-out trading results, and follow-up research plan.
 
 ## 0.2.0 - 2026-09-25
 

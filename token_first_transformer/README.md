@@ -112,7 +112,10 @@ The full-history model reached weighted F1 0.4206 on validation and 0.4212 on
 the held-out test. The test backtest returned -87.67% with 0.04% commission per
 fill, or -99.10% when adding an assumed 0.05% slippage per fill. The current
 classifier is not a viable trading strategy; F1 is not a substitute for
-cost-adjusted validation. A separate recent-history experiment is in progress.
+cost-adjusted validation. A separate six-month-history run early-stopped at
+epoch 5; it reached test weighted F1 0.3661 and returned -93.61% in the
+commission-only backtest. See the [experiment audit](../docs/research/btcusdt-1m-2026-09-25.md)
+for the assumptions and next steps.
 
 ---
 

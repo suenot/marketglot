@@ -13,6 +13,7 @@
 | [Обзор проектов](../projects.md) | Краткое описание всех 9 направлений (в корне) |
 | [Ресёрч: diffusion-модели](research/diffusion-llms.md) | Diffusion LM (Gemini Diffusion, LLaDA) и diffusion для рынков — направление проектов 7–8 |
 | [Ресёрч: Kronos](research/kronos.md) | Разбор Kronos (свечи-как-язык, BSQ-токенайзер, иерархический декодер) и что перенять; запущен локально |
+| [Первое обучение BTCUSDT 1m](research/btcusdt-1m-2026-09-25.md) | Итог аренды GPU, бэктесты, ограничения и следующий порядок экспериментов |
 | [Спека token-first (design)](superpowers/specs/2026-04-21-token-transformer-trading-agent-design.md) | Исторический design-doc |
 
 ## Быстрые ссылки
