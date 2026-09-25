@@ -75,3 +75,30 @@ def test_labels_valid(mock_dataset):
         labels.add(label.item())
 
     assert labels.issubset({0, 1, 2}), f"Invalid labels found: {labels}"
+
+
+def test_chronological_splits_and_frozen_boundaries(tmp_path):
+    from dataset.moe_dataset import MoEDataset
+    path = _create_mock_parquet(str(tmp_path))
+    ds = MoEDataset([path], seq_len=64, horizon=10, train_fraction=0.6)
+    train, val, test = ds.split_ranges(0.2)
+    assert train.stop + ds.seq_len + ds.horizon - 1 <= val.start
+    assert val.stop + ds.seq_len + ds.horizon - 1 <= test.start
+    assert np.array_equal(ds.vol_tokenizer.boundaries,
+                          np.percentile(ds.volume[:ds.train_row_end],
+                                        np.linspace(0, 100, 9)[1:-1]).astype(np.float32))
+    ds.save_tokenizers(tmp_path / "checkpoint")
+    restored = MoEDataset([path], seq_len=64, horizon=10,
+                          train_fraction=0.6, tokenizer_dir=tmp_path / "checkpoint")
+    np.testing.assert_array_equal(restored.vol_ids_all, ds.vol_ids_all)
+    np.testing.assert_array_equal(restored.vb_ids_all, ds.vb_ids_all)
+
+
+def test_up_is_class_two(tmp_path):
+    from dataset.moe_dataset import MoEDataset
+    path = _create_mock_parquet(str(tmp_path))
+    ds = MoEDataset([path], seq_len=64, horizon=10)
+    ds.close[64 + 10 - 1] = ds.close[63] * 1.01
+    assert ds[0][-1].item() == 2
+    ds.close[64 + 10 - 1] = ds.close[63] * 0.99
+    assert ds[0][-1].item() == 0

@@ -11,6 +11,10 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report, confusion_matrix
 from dataset.multimodal_dataset import MultimodalDataset
 from models.multimodal_model import MultimodalEncoder
+from tokenizer.delta_tokenizer import DeltaTokenizer
+from tokenizer.bucket_tokenizer import BucketTokenizer
+from indicators.computer import IndicatorComputer
+from indicators.tokenizer import IndicatorTokenizer
 
 
 def collate(batch):
@@ -39,7 +43,14 @@ def main():
     sc, tc = cfg["sequence"], cfg["tokenizer"]
     mk = dict(seq_len=sc["length"], target_horizon=sc["target_horizon"], target_threshold=sc["target_threshold"],
               range_pct=tc["delta"]["range_pct"], step_pct=tc["delta"]["step_pct"], n_bins=tc["bucket"]["n_bins"])
-    te_dl = DataLoader(MultimodalDataset(te_f, **mk), batch_size=64, shuffle=False, collate_fn=collate, num_workers=0)
+    checkpoint_dir = Path(args.checkpoint).parent
+    dt = DeltaTokenizer(range_pct=tc["delta"]["range_pct"], step_pct=tc["delta"]["step_pct"])
+    vt, bt = BucketTokenizer(tc["bucket"]["n_bins"]), BucketTokenizer(tc["bucket"]["n_bins"])
+    vt.load(checkpoint_dir / "volatility.npy")
+    bt.load(checkpoint_dir / "volume.npy")
+    it = IndicatorTokenizer()
+    it.load(checkpoint_dir / "indicators")
+    te_dl = DataLoader(MultimodalDataset(te_f, **mk, tokenizers=(dt, vt, bt, it, IndicatorComputer())), batch_size=64, shuffle=False, collate_fn=collate, num_workers=0)
 
     mc, mi, mf = cfg["model"]["candle"], cfg["model"]["indicator"], cfg["model"]["fusion"]
     model = MultimodalEncoder(

@@ -53,3 +53,15 @@ def test_labels_valid(sample_parquet):
     for i in range(min(10, len(ds))):
         _, _, _, _, label = ds[i]
         assert label in (0, 1, 2)
+
+
+def test_reuses_train_tokenizers(sample_parquet, monkeypatch):
+    train = FusionDataset([sample_parquet], seq_len=64, target_horizon=10)
+    fitted = (train.delta_tok, train.vol_tok, train.vb_tok, train.ind_tok, train.comp)
+    def fail_fit(*args):
+        raise AssertionError("validation must not fit tokenizers")
+    monkeypatch.setattr("dataset.fusion_dataset._fit_all", fail_fit)
+    val = FusionDataset([sample_parquet], seq_len=64, target_horizon=10,
+                        tokenizers=fitted)
+    assert val.vol_tok is train.vol_tok
+    assert val.ind_tok is train.ind_tok

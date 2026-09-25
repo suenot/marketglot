@@ -13,8 +13,8 @@ import yaml
 import torch
 from torch.utils.data import DataLoader
 
-from dataset.klines_dataset import KlinesDataset, make_split
-from training.trainer import Trainer, compute_class_weights
+from dataset.klines_dataset import KlinesDataset, make_split, save_tokenizers, load_tokenizers
+from training.trainer import Trainer, ResumableRandomSampler, compute_class_weights
 from models.price_transformer import PriceTransformer
 
 
@@ -22,14 +22,16 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/default.yaml")
+    parser.add_argument("--resume", type=Path)
     args = parser.parse_args()
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
 
     data_dir = Path(cfg["data"]["data_dir"])
-    train_files = make_split(data_dir, *cfg["data"]["train_months"])
-    val_files = make_split(data_dir, *cfg["data"]["val_months"])
+    symbol = cfg["data"]["symbol"]
+    train_files = make_split(data_dir, *cfg["data"]["train_months"], symbol=symbol)
+    val_files = make_split(data_dir, *cfg["data"]["val_months"], symbol=symbol)
     print(f"Train files: {len(train_files)}, Val files: {len(val_files)}")
 
     seq_cfg = cfg["sequence"]
@@ -42,6 +44,10 @@ def main():
         range_pct=tok_cfg["delta"]["range_pct"],
         step_pct=tok_cfg["delta"]["step_pct"],
         n_bins=tok_cfg["bucket"]["n_bins"],
+        tokenizers=load_tokenizers(args.resume.parent,
+                                   tok_cfg["delta"]["range_pct"],
+                                   tok_cfg["delta"]["step_pct"],
+                                   tok_cfg["bucket"]["n_bins"]) if args.resume else None,
     )
     val_ds = KlinesDataset(
         val_files,
@@ -51,9 +57,14 @@ def main():
         range_pct=tok_cfg["delta"]["range_pct"],
         step_pct=tok_cfg["delta"]["step_pct"],
         n_bins=tok_cfg["bucket"]["n_bins"],
+        tokenizers=(train_ds.delta_tok, train_ds.vol_tok, train_ds.vb_tok),
     )
+    save_tokenizers((train_ds.delta_tok, train_ds.vol_tok, train_ds.vb_tok),
+                    Path(cfg["training"]["checkpoint_dir"]))
 
-    train_dl = DataLoader(train_ds, batch_size=cfg["training"]["batch_size"], shuffle=True, num_workers=0)
+    train_dl = DataLoader(train_ds, batch_size=cfg["training"]["batch_size"],
+                          sampler=ResumableRandomSampler(train_ds, seed=int(cfg["training"]["seed"])),
+                          generator=torch.Generator(), num_workers=0)
     val_dl = DataLoader(val_ds, batch_size=cfg["training"]["batch_size"], shuffle=False, num_workers=0)
 
     model_cfg = cfg["model"]
@@ -82,6 +93,9 @@ def main():
         early_stop_patience=cfg["training"]["early_stop_patience"],
         device=cfg["training"]["device"],
         checkpoint_dir=Path(cfg["training"]["checkpoint_dir"]),
+        resume_from=args.resume,
+        seed=int(cfg["training"]["seed"]),
+        checkpoint_every_steps=int(cfg["training"].get("checkpoint_every_steps", 100)),
     )
     trainer.train()
 

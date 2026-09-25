@@ -11,7 +11,7 @@ Each project lives in its own subdirectory: `w_training/<project_name>/`.
 
 ## Project 1: `token_first_transformer` — MVP
 
-**Status:** Code complete. 36 tests pass. Not trained.
+**Status:** Code complete. 45 tests pass. Not trained.
 
 Token-based transformer classifier. Discretizes price deltas into tokens — "market language" — trains small Transformer on BTCUSDT 1m candles for 3-class prediction (UP/FLAT/DOWN).
 
@@ -40,7 +40,7 @@ Bucketize technical indicators (RSI, MACD, Bollinger %B, ATR, Volume Ratio, Pric
 
 ## Project 3: `late_fusion_agent` — Separate Models + Meta-Model
 
-**Status:** Code complete. 13 tests pass. Not trained.
+**Status:** Code complete. 14 tests pass. Not trained.
 
 Each data source trains its own independent model. A lightweight meta-model combines their predictions.
 
@@ -55,7 +55,7 @@ Each data source trains its own independent model. A lightweight meta-model comb
 
 ## Project 4: `orderbook_encoder` — Order Book MLP Embeddings
 
-**Status:** Code complete. 46 tests pass. Smoke-trained on 1 real day (XRPUSDT/bybit).
+**Status:** Code complete. 49 tests pass. Smoke-trained on 1 real day (XRPUSDT/bybit).
 
 L2 order book data is served by the prod warehouse API (`warehouse.marketmaker.cc`, anonymous S3) — see `docs/data_sources.md`. Collector live since 2026-06-01, history grows daily; deep history available from CryptoHFTData (cryptohftdata.com).
 
@@ -69,7 +69,7 @@ L2 order book data is served by the prod warehouse API (`warehouse.marketmaker.c
 
 ## Project 5: `multimodal_encoder` — Multi-Encoder Architecture
 
-**Status:** Code complete. 8 tests pass. Not trained.
+**Status:** Code complete. 9 tests pass. Not trained.
 
 Single end-to-end model that processes candle tokens AND indicator tokens through separate encoders, then fuses via concatenation through shared transformer layers.
 
@@ -84,7 +84,7 @@ Single end-to-end model that processes candle tokens AND indicator tokens throug
 
 ## Project 6: `moe_trading_agent` — Mixture of Experts
 
-**Status:** Code complete. 19 tests pass. Not trained.
+**Status:** Code complete. 21 tests pass. Not trained.
 
 Full MoE architecture where different "experts" specialize in different market regimes. Sparse activation (top-K routing).
 
@@ -168,12 +168,12 @@ token_first_transformer ──────────────────�
 
 | # | Project | Tests | Status |
 |---|---------|-------|--------|
-| 1 | token_first_transformer | 36 | Code complete |
+| 1 | token_first_transformer | 45 | Code complete |
 | 2 | indicator_tokenizer | 15 | Code complete, boundaries fitted |
-| 3 | late_fusion_agent | 13 | Code complete |
-| 4 | orderbook_encoder | 46 | Code complete, smoke-trained on real data |
-| 5 | multimodal_encoder | 8 | Code complete |
-| 6 | moe_trading_agent | 19 | Code complete |
+| 3 | late_fusion_agent | 14 | Code complete |
+| 4 | orderbook_encoder | 49 | Code complete, smoke-trained on real data |
+| 5 | multimodal_encoder | 9 | Code complete |
+| 6 | moe_trading_agent | 21 | Code complete |
 | 7 | diffusion_orderbook | — | Design stage ([SPEC](diffusion_orderbook/SPEC.md)) |
 | 8 | transformer_diffusion_fusion | — | Design stage ([SPEC](transformer_diffusion_fusion/SPEC.md)) |
 | 9 | footprint_encoder | — | Design stage ([SPEC](footprint_encoder/SPEC.md)) |

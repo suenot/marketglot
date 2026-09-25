@@ -42,11 +42,11 @@ def _fit_all(files, range_pct, step_pct, n_bins):
 
 class MultimodalDataset:
     def __init__(self, files, seq_len=128, target_horizon=60, target_threshold=0.0015,
-                 range_pct=3.0, step_pct=0.05, n_bins=8):
+                 range_pct=3.0, step_pct=0.05, n_bins=8, tokenizers=None):
         self.seq_len = seq_len
         self.target_horizon = target_horizon
         self.target_threshold = target_threshold
-        self.dt, self.vt, self.bt, self.it, self.comp = _fit_all(files, range_pct, step_pct, n_bins)
+        self.dt, self.vt, self.bt, self.it, self.comp = tokenizers or _fit_all(files, range_pct, step_pct, n_bins)
         frames = [_load(f) for f in files]
         self.closes = np.concatenate([f["close"] for f in frames]).astype(np.float32)
         self.highs = np.concatenate([f["high"] for f in frames]).astype(np.float32)

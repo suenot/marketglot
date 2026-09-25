@@ -93,6 +93,10 @@ class FusionTrainer:
             if pat >= self.early_stop_patience:
                 print(f"  Early stop {name} at ep {ep}"); break
 
+        # The meta-model must see the same base weights used by evaluation.
+        best_path = self.checkpoint_dir / f"{name}_best.pt"
+        model.load_state_dict(torch.load(best_path, map_location=self.device, weights_only=True))
+
     def _collect_logits(self):
         self.model_a.eval(); self.model_b.eval()
         la, lb, y = [], [], []

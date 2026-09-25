@@ -157,6 +157,7 @@ def train(cfg: dict) -> dict:
         "report": report,
         "confusion_matrix": cm.tolist(),
         "best_val_loss": best_val,
+        "smoke": bool(tcfg.get("smoke", False)),
     }
     with open(run_dir / "test_metrics.json", "w") as f:
         json.dump(metrics, f, indent=2)

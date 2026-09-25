@@ -78,6 +78,19 @@ python scripts/evaluate.py --checkpoint checkpoints/best.pt --config configs/def
 python scripts/backtest.py --checkpoint checkpoints/best.pt --config configs/default.yaml
 ```
 
+Training writes `latest.pt` atomically every 100 optimizer steps by default and
+after each epoch. It contains the model, optimizer, scheduler, random state,
+metrics, and the next batch position. The training-fitted bucket boundaries are
+saved beside it. To resume with the same config and data:
+
+```bash
+python scripts/train.py --config configs/default.yaml --resume checkpoints/latest.pt
+```
+
+Keep the complete checkpoint directory on durable storage when training on an
+ephemeral machine. `best.pt` is for evaluation; `latest.pt` is for continuation.
+Set `training.checkpoint_every_steps` for a different save interval.
+
 Training uses AdamW with cosine annealing over up to 10 epochs (early stopping
 on weighted F1), device `auto` (MPS / CUDA / CPU). The backtest runs sequentially
 with `-0.5%` stop-loss, `+1.0%` take-profit, 60-candle max hold, and `0.04%`
@@ -86,7 +99,7 @@ a local parquet directory of BTCUSDT 1m klines that you must supply.
 
 ## Status
 
-Code complete; 36 tests pass. The model has **not** been trained, so there are
+Code complete; 45 tests pass. The model has **not** been trained, so there are
 no performance metrics to report yet.
 
 ---

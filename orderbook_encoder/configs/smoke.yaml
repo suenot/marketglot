@@ -27,6 +27,7 @@ model:
   dropout: 0.1
 
 training:
+  smoke: true              # overlapping dates: pipeline check only
   batch_size: 256
   learning_rate: 1.0e-3
   weight_decay: 0.01

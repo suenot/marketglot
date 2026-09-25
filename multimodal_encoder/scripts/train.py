@@ -39,8 +39,16 @@ def main():
     sc, tc = cfg["sequence"], cfg["tokenizer"]
     mk = dict(seq_len=sc["length"], target_horizon=sc["target_horizon"], target_threshold=sc["target_threshold"],
               range_pct=tc["delta"]["range_pct"], step_pct=tc["delta"]["step_pct"], n_bins=tc["bucket"]["n_bins"])
-    tr_dl = DataLoader(MultimodalDataset(tr_f, **mk), batch_size=cfg["training"]["batch_size"], shuffle=True, collate_fn=collate, num_workers=0)
-    va_dl = DataLoader(MultimodalDataset(va_f, **mk), batch_size=cfg["training"]["batch_size"], shuffle=False, collate_fn=collate, num_workers=0)
+    tr_ds = MultimodalDataset(tr_f, **mk)
+    fitted = (tr_ds.dt, tr_ds.vt, tr_ds.bt, tr_ds.it, tr_ds.comp)
+    va_ds = MultimodalDataset(va_f, **mk, tokenizers=fitted)
+    checkpoint_dir = Path(cfg["training"]["checkpoint_dir"])
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    tr_ds.vt.save(checkpoint_dir / "volatility.npy")
+    tr_ds.bt.save(checkpoint_dir / "volume.npy")
+    tr_ds.it.save(checkpoint_dir / "indicators")
+    tr_dl = DataLoader(tr_ds, batch_size=cfg["training"]["batch_size"], shuffle=True, collate_fn=collate, num_workers=0)
+    va_dl = DataLoader(va_ds, batch_size=cfg["training"]["batch_size"], shuffle=False, collate_fn=collate, num_workers=0)
 
     mc, mi, mf = cfg["model"]["candle"], cfg["model"]["indicator"], cfg["model"]["fusion"]
     model = MultimodalEncoder(

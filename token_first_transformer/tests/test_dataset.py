@@ -3,7 +3,8 @@ import pytest
 import pyarrow as pa
 import pyarrow.parquet as pq
 from pathlib import Path
-from dataset.klines_dataset import KlinesDataset, fit_tokenizers, make_split
+from dataset.klines_dataset import (KlinesDataset, fit_tokenizers, make_split,
+                                    save_tokenizers, load_tokenizers)
 
 
 @pytest.fixture
@@ -13,7 +14,7 @@ def sample_parquet(tmp_path):
     base_price = 30000.0
     close = base_price + np.cumsum(rng.standard_normal(n) * 10).astype(np.float32)
     table = pa.table({
-        "timestamp": np.arange(n, dtype=np.int32),
+        "timestamp": np.arange(n, dtype=np.int32) * 60,
         "open": (close - rng.standard_normal(n) * 2).astype(np.float32),
         "high": (close + np.abs(rng.standard_normal(n)) * 5).astype(np.float32),
         "low": (close - np.abs(rng.standard_normal(n)) * 5).astype(np.float32),
@@ -33,7 +34,20 @@ def test_dataset_length(sample_parquet):
         seq_len=seq_len,
         target_horizon=horizon,
     )
-    assert len(ds) == 500 - seq_len - horizon
+    assert len(ds) == 500 - seq_len - horizon + 1
+
+
+def test_windows_do_not_cross_missing_minutes(sample_parquet, tmp_path):
+    table = pq.read_table(sample_parquet)
+    timestamps = table["timestamp"].to_numpy().copy()
+    timestamps[250:] += 60 * 10
+    columns = {name: table[name] for name in table.column_names}
+    columns["timestamp"] = pa.array(timestamps)
+    path = tmp_path / "gapped.parquet"
+    pq.write_table(pa.table(columns), path)
+    ds = KlinesDataset([path], seq_len=64, target_horizon=10)
+    assert len(ds) < 500 - 64 - 10 + 1
+    assert all(not (start <= 249 < start + 64 + 10 - 1) for start in ds.sample_starts)
 
 
 def test_dataset_item_shape(sample_parquet):
@@ -74,3 +88,16 @@ def test_make_split(sample_parquet, tmp_path):
     split = make_split(data_dir, "2023-02", "2023-02")
     assert len(split) == 1
     assert split[0].name == "2023-02.parquet"
+
+
+def test_frozen_tokenizers_survive_checkpoint(sample_parquet, tmp_path):
+    train = KlinesDataset([sample_parquet], seq_len=64, target_horizon=10)
+    fitted = (train.delta_tok, train.vol_tok, train.vb_tok)
+    save_tokenizers(fitted, tmp_path / "checkpoint")
+    restored = load_tokenizers(tmp_path / "checkpoint")
+    np.testing.assert_array_equal(restored[1].boundaries, train.vol_tok.boundaries)
+    np.testing.assert_array_equal(restored[2].boundaries, train.vb_tok.boundaries)
+    test = KlinesDataset([sample_parquet], seq_len=64, target_horizon=10,
+                         tokenizers=restored)
+    for actual, expected in zip(test[0][:3], train[0][:3]):
+        np.testing.assert_array_equal(actual, expected)

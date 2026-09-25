@@ -1,6 +1,6 @@
 [project]
 name = "late-fusion-agent"
-version = "0.1.0"
+version = "0.1.1"
 description = "Late fusion trading agent combining candle and indicator models"
 requires-python = ">=3.11"
 dependencies = [

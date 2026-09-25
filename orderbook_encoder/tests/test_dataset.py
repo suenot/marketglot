@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from dataset.orderbook_dataset import OrderbookDataset, build_splits, DOWN, FLAT, UP
 
@@ -49,7 +50,7 @@ def test_feature_shape(tmp_path):
 
 def test_hole_in_ts_dropped(tmp_path):
     # gap between index 1 and 2 (10s) makes pairs spanning it invalid.
-    # horizon gap expected = 2000ms; tolerance is also 2000ms (drop if |gap-2000|>2000).
+    # horizon gap expected = 2000ms; tolerance is one sampling interval.
     # pair (0,2): ts 0 -> 11000, gap 11000, |11000-2000|=9000 > 2000 -> dropped
     # pair (1,3): ts 1000 -> 12000, gap 11000 -> dropped
     # pair (2,4): ts 11000 -> 13000, gap 2000 -> kept
@@ -60,6 +61,22 @@ def test_hole_in_ts_dropped(tmp_path):
     ds = OrderbookDataset([p], horizon_sec=HORIZON, threshold_pct=THRESH,
                           interval_sec=INTERVAL)
     assert len(ds) == 1
+
+
+def test_target_horizon_does_not_stretch_to_twice_requested(tmp_path):
+    p = tmp_path / "day.npz"
+    _write_npz(p, [0, 1000, 3900, 4900], [100.0] * 4)
+    ds = OrderbookDataset([p], horizon_sec=HORIZON, threshold_pct=THRESH,
+                          interval_sec=INTERVAL)
+    assert len(ds) == 0
+
+
+def test_non_monotonic_timestamps_rejected(tmp_path):
+    p = tmp_path / "day.npz"
+    _write_npz(p, [0, 1000, 1000, 3000], [100.0] * 4)
+    with pytest.raises(ValueError, match="strictly increasing"):
+        OrderbookDataset([p], horizon_sec=HORIZON, threshold_pct=THRESH,
+                         interval_sec=INTERVAL)
 
 
 def test_no_cross_file_boundary(tmp_path):
@@ -105,3 +122,15 @@ def test_build_splits_missing_dates_skipped(tmp_path, capsys):
     assert len(test_ds) == 0
     out = capsys.readouterr().out
     assert "missing samples file" in out
+
+
+def test_build_splits_rejects_overlapping_days():
+    cfg = {
+        "data": {"symbol": "XRPUSDT", "exchange": "bybit", "samples_dir": "."},
+        "sampling": {"interval_sec": INTERVAL},
+        "target": {"horizon_sec": HORIZON, "threshold_pct": THRESH},
+        "split": {"train_days": ["2026-06-01"], "val_days": ["2026-06-01"],
+                  "test_days": ["2026-06-02"]},
+    }
+    with pytest.raises(ValueError, match="multiple splits"):
+        build_splits(cfg)

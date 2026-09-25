@@ -15,7 +15,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report, confusion_matrix
 
-from dataset.klines_dataset import KlinesDataset, make_split
+from dataset.klines_dataset import KlinesDataset, make_split, load_tokenizers
 from models.price_transformer import PriceTransformer
 
 
@@ -30,7 +30,8 @@ def main():
         cfg = yaml.safe_load(f)
 
     data_dir = Path(cfg["data"]["data_dir"])
-    test_files = make_split(data_dir, *cfg["data"]["test_months"])
+    test_files = make_split(data_dir, *cfg["data"]["test_months"],
+                            symbol=cfg["data"]["symbol"])
     print(f"Test files: {len(test_files)}")
 
     seq_cfg = cfg["sequence"]
@@ -45,6 +46,10 @@ def main():
         range_pct=tok_cfg["delta"]["range_pct"],
         step_pct=tok_cfg["delta"]["step_pct"],
         n_bins=tok_cfg["bucket"]["n_bins"],
+        tokenizers=load_tokenizers(Path(args.checkpoint).parent,
+                                   tok_cfg["delta"]["range_pct"],
+                                   tok_cfg["delta"]["step_pct"],
+                                   tok_cfg["bucket"]["n_bins"]),
     )
     test_dl = DataLoader(test_ds, batch_size=cfg["training"]["batch_size"], shuffle=False, num_workers=0)
 

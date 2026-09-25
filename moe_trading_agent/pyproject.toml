@@ -1,6 +1,6 @@
 [project]
 name = "moe_trading_agent"
-version = "0.1.0"
+version = "0.1.1"
 description = "Mixture of Experts transformer for 3-class trading prediction on BTCUSDT 1m candles"
 requires-python = ">=3.11"
 dependencies = [

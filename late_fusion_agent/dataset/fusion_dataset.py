@@ -56,11 +56,12 @@ def _fit_all(file_paths: list[Path], range_pct: float, step_pct: float, n_bins: 
 class FusionDataset:
     def __init__(self, file_paths: list[Path], seq_len: int = 128,
                  target_horizon: int = 60, target_threshold: float = 0.0015,
-                 range_pct: float = 3.0, step_pct: float = 0.05, n_bins: int = 8):
+                 range_pct: float = 3.0, step_pct: float = 0.05, n_bins: int = 8,
+                 tokenizers=None):
         self.seq_len = seq_len
         self.target_horizon = target_horizon
         self.target_threshold = target_threshold
-        self.delta_tok, self.vol_tok, self.vb_tok, self.ind_tok, self.comp = _fit_all(
+        self.delta_tok, self.vol_tok, self.vb_tok, self.ind_tok, self.comp = tokenizers or _fit_all(
             file_paths, range_pct, step_pct, n_bins
         )
         self._load_data(file_paths)

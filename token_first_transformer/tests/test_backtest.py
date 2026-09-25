@@ -52,3 +52,55 @@ def test_result_metrics():
     assert 0.0 <= result.win_rate <= 1.0
     assert isinstance(result.trade_count, int)
     assert isinstance(result.profit_factor, float)
+
+
+def test_signal_starts_after_input_window_and_fills_next_open():
+    engine = BacktestEngine(commission=0, stop_loss=-1, take_profit=1, max_hold=10)
+    closes = np.array([100, 100, 100, 100, 110, 120], dtype=float)
+    opens = np.array([100, 100, 100, 100, 105, 115], dtype=float)
+    # The first signal is formed at the close of bar 3, not bar 0.
+    result = engine.run(closes, np.array([2]), opens=opens, signal_start=3)
+    assert result.trade_count == 1
+    assert result.trades[0].entry_idx == 4
+    assert result.trades[0].entry_price == 105
+    assert result.trades[0].exit_idx == 5
+    assert result.total_pnl == pytest.approx(120 / 105 - 1)
+    assert np.all(result.equity_curve[:4] == 1)
+
+
+def test_stop_uses_next_open_and_applies_both_commissions():
+    engine = BacktestEngine(commission=0.01, stop_loss=-0.005,
+                            take_profit=1, max_hold=10)
+    closes = np.array([100, 100, 99, 99], dtype=float)
+    opens = np.array([100, 100, 100, 90], dtype=float)
+    result = engine.run(closes, np.array([2]), opens=opens)
+    assert result.trades[0].entry_idx == 1
+    assert result.trades[0].exit_idx == 3
+    assert result.trades[0].exit_price == 90
+    assert result.total_pnl == pytest.approx(0.99 * 0.90 * 0.99 - 1)
+    assert result.max_drawdown == pytest.approx(result.total_pnl)
+
+
+def test_compounded_total_return_and_bar_sharpe():
+    engine = BacktestEngine(commission=0, stop_loss=-1, take_profit=0.01,
+                            max_hold=10)
+    closes = np.array([100, 102, 102, 102, 104.04, 104.04], dtype=float)
+    opens = np.array([100, 100, 102, 102, 102, 104.04], dtype=float)
+    result = engine.run(closes, np.array([2, 1, 1, 2, 1, 1]), opens=opens)
+    assert result.trade_count == 2
+    assert result.total_pnl == pytest.approx(1.02 ** 2 - 1)
+    returns = np.diff(np.r_[1, result.equity_curve]) / np.r_[1, result.equity_curve][:-1]
+    assert result.sharpe == pytest.approx(np.mean(returns) / np.std(returns) * np.sqrt(365 * 1440))
+
+
+def test_misaligned_predictions_rejected():
+    engine = BacktestEngine()
+    with pytest.raises(ValueError, match="predictions do not fit"):
+        engine.run(np.ones(4), np.ones(3), signal_start=2)
+
+
+def test_sparse_signal_indices_keep_bar_alignment():
+    engine = BacktestEngine(commission=0, stop_loss=-1, take_profit=1, max_hold=10)
+    closes = np.array([100, 100, 100, 100, 100, 110], dtype=float)
+    result = engine.run(closes, np.array([2]), signal_indices=np.array([4]))
+    assert result.trades[0].entry_idx == 5

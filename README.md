@@ -62,12 +62,12 @@ denoising instead of autoregression, for higher local throughput. See
 
 | # | Project | Idea | Tests | Status |
 |---|---------|------|:-----:|--------|
-| 1 | [`token_first_transformer`](token_first_transformer/) | Discretize price deltas / vol / volume into tokens, train a small transformer classifier | 36 | ✅ Code complete |
+| 1 | [`token_first_transformer`](token_first_transformer/) | Discretize price deltas / vol / volume into tokens, train a small transformer classifier | 45 | ✅ Code complete |
 | 2 | [`indicator_tokenizer`](indicator_tokenizer/) | Quantile-bucketize technical indicators (RSI, MACD, BB %B, ATR, VR, PVS) into per-indicator vocabularies | 15 | ✅ Code complete · boundaries fitted |
-| 3 | [`late_fusion_agent`](late_fusion_agent/) | Train one model per modality, fuse their logits with a lightweight meta-model | 13 | ✅ Code complete |
-| 4 | [`orderbook_encoder`](orderbook_encoder/) | Reconstruct the L2 book from warehouse snapshots+deltas, encode top-20 levels with a deep MLP → 64-dim embedding | 46 | ✅ Code complete · smoke-trained on real data |
-| 5 | [`multimodal_encoder`](multimodal_encoder/) | One end-to-end transformer over candle **and** indicator tokens via separate encoders + fusion | 8 | ✅ Code complete |
-| 6 | [`moe_trading_agent`](moe_trading_agent/) | Mixture-of-Experts transformer with sparse top-k routing and load-balancing loss | 19 | ✅ Code complete |
+| 3 | [`late_fusion_agent`](late_fusion_agent/) | Train one model per modality, fuse their logits with a lightweight meta-model | 14 | ✅ Code complete |
+| 4 | [`orderbook_encoder`](orderbook_encoder/) | Reconstruct the L2 book from warehouse snapshots+deltas, encode top-20 levels with a deep MLP → 64-dim embedding | 49 | ✅ Code complete · smoke-trained on real data |
+| 5 | [`multimodal_encoder`](multimodal_encoder/) | One end-to-end transformer over candle **and** indicator tokens via separate encoders + fusion | 9 | ✅ Code complete |
+| 6 | [`moe_trading_agent`](moe_trading_agent/) | Mixture-of-Experts transformer with sparse top-k routing and load-balancing loss | 21 | ✅ Code complete |
 | 7 | [`diffusion_orderbook`](diffusion_orderbook/) | Diffusion model over order-book microstructure, conditioned on price-action context; inpainting-based forecasting | — | 📐 Design ([SPEC](diffusion_orderbook/SPEC.md)) |
 | 8 | [`transformer_diffusion_fusion`](transformer_diffusion_fusion/) | Transformer context + diffusion decoder + decision head (most complex) | — | 📐 Design ([SPEC](transformer_diffusion_fusion/SPEC.md)) |
 | 9 | [`footprint_encoder`](footprint_encoder/) | Footprint / cluster-chart modality — volume-at-price per bar split by aggressor side (buy/sell), encoded over a bar sequence | — | 📐 Design ([SPEC](footprint_encoder/SPEC.md)) |
@@ -188,7 +188,7 @@ See [`docs/colab.md`](docs/colab.md) and [`kaggle_notebooks/`](kaggle_notebooks/
 This is **active research**, and honesty matters more than a green badge:
 
 - **Code & tests:** all six implemented projects are code-complete with passing
-  unit tests (137 tests total).
+  unit tests (153 tests total).
 - **Training:** mostly **not done**. `orderbook_encoder` has been *smoke-trained*
   on a single real day (XRPUSDT/bybit) and `late_fusion_agent` ran a smoke-test
   on Kaggle (synthetic data, CPU) — neither produced meaningful metrics.

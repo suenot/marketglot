@@ -60,7 +60,7 @@ late_fusion_agent/
 ├── models/         # IndicatorModel (B), MetaModel (meta)  [A comes from sibling]
 ├── training/       # FusionTrainer: 3-stage train_all()
 ├── scripts/        # train.py, evaluate.py
-├── tests/          # 13 tests (dataset, model B, meta, integration)
+├── tests/          # 14 tests (dataset, model B, meta, integration)
 └── late_fusion_agent.ipynb
 ```
 
@@ -90,7 +90,7 @@ parquet and need no external data.
 
 ## Status
 
-Code complete; **13 tests pass**. Only a single Kaggle smoke-test on synthetic
+Code complete; **14 tests pass**. Only a single Kaggle smoke-test on synthetic
 data (CPU) has been run to confirm the pipeline executes end-to-end — the
 models have **not** been meaningfully trained, so there are no real metrics yet.
 

@@ -19,11 +19,11 @@ def mock_data_dir(tmp_path):
     symbol_dir.mkdir(parents=True)
     rng = np.random.default_rng(123)
     n = 500
-    for month in ["2025-01", "2025-02", "2025-03"]:
+    for month_index, month in enumerate(["2025-01", "2025-02", "2025-03"]):
         base = 30000.0 + rng.standard_normal() * 100
         close = base + np.cumsum(rng.standard_normal(n) * 5).astype(np.float32)
         table = pa.table({
-            "timestamp": np.arange(n, dtype=np.int32),
+            "timestamp": (month_index * n + np.arange(n, dtype=np.int32)) * 60,
             "open": (close - rng.standard_normal(n) * 2).astype(np.float32),
             "high": (close + np.abs(rng.standard_normal(n)) * 5).astype(np.float32),
             "low": (close - np.abs(rng.standard_normal(n)) * 5).astype(np.float32),

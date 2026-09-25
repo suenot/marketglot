@@ -55,10 +55,16 @@ class OrderbookDataset(Dataset):
             self._features.append(feats)
             self._mid.append(mid)
 
+            if len(ts) != len(feats) or len(ts) != len(mid):
+                raise ValueError(f"sample array lengths differ: {path}")
+            if np.any(np.diff(ts) <= 0):
+                raise ValueError(f"timestamps must be strictly increasing: {path}")
             n = len(ts)
             for i in range(n - self.h):
                 j = i + self.h
-                if abs((ts[j] - ts[i]) - gap_ms) > gap_ms:
+                # A missing tick may stretch a nominal 60-second target into
+                # nearly two minutes. Allow only one sampling interval of drift.
+                if abs((ts[j] - ts[i]) - gap_ms) > interval_sec * 1000.0:
                     continue
                 self._pairs.append((file_idx, i))
 
@@ -106,6 +112,10 @@ def build_splits(
     target = cfg["target"]
     interval_sec = cfg["sampling"]["interval_sec"]
     split = cfg["split"]
+    day_sets = [set(split[name]) for name in ("train_days", "val_days", "test_days")]
+    overlap = (day_sets[0] & day_sets[1]) | (day_sets[0] & day_sets[2]) | (day_sets[1] & day_sets[2])
+    if overlap and not cfg.get("training", {}).get("smoke", False):
+        raise ValueError(f"days occur in multiple splits: {sorted(overlap)}")
 
     def make(days: list[str]) -> OrderbookDataset:
         return OrderbookDataset(

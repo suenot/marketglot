@@ -21,6 +21,10 @@ from sklearn.metrics import classification_report, confusion_matrix
 from dataset.fusion_dataset import FusionDataset
 from models.indicator_model import IndicatorModel
 from models.meta_model import MetaModel
+from tokenizer.delta_tokenizer import DeltaTokenizer
+from tokenizer.bucket_tokenizer import BucketTokenizer
+from indicators.computer import IndicatorComputer
+from indicators.tokenizer import IndicatorTokenizer
 
 
 def collate_fn(batch):
@@ -50,10 +54,15 @@ def main():
     print(f"Test: {len(test_files)} files")
 
     sc, tc = cfg["sequence"], cfg["tokenizer"]
-    test_ds = FusionDataset(test_files, seq_len=sc["length"], target_horizon=sc["target_horizon"], target_threshold=sc["target_threshold"], range_pct=tc["delta"]["range_pct"], step_pct=tc["delta"]["step_pct"], n_bins=tc["bucket"]["n_bins"])
-    test_dl = DataLoader(test_ds, batch_size=64, shuffle=False, collate_fn=collate_fn, num_workers=0)
-
     ckpt = Path(args.checkpoint_dir)
+    dt = DeltaTokenizer(range_pct=tc["delta"]["range_pct"], step_pct=tc["delta"]["step_pct"])
+    vt, bt = BucketTokenizer(tc["bucket"]["n_bins"]), BucketTokenizer(tc["bucket"]["n_bins"])
+    vt.load(ckpt / "volatility.npy")
+    bt.load(ckpt / "volume.npy")
+    it = IndicatorTokenizer()
+    it.load(ckpt / "indicators")
+    test_ds = FusionDataset(test_files, seq_len=sc["length"], target_horizon=sc["target_horizon"], target_threshold=sc["target_threshold"], range_pct=tc["delta"]["range_pct"], step_pct=tc["delta"]["step_pct"], n_bins=tc["bucket"]["n_bins"], tokenizers=(dt, vt, bt, it, IndicatorComputer()))
+    test_dl = DataLoader(test_ds, batch_size=64, shuffle=False, collate_fn=collate_fn, num_workers=0)
     dev = "mps" if torch.backends.mps.is_available() else "cpu"
 
     ma = cfg["model_a"]

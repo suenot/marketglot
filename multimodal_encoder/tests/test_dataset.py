@@ -28,3 +28,15 @@ def test_shapes(parquet):
 def test_cls(parquet):
     delta = MultimodalDataset([parquet], seq_len=64, target_horizon=10)[0][0]
     assert delta[0] == 1
+
+
+def test_reuses_train_tokenizers(parquet, monkeypatch):
+    train = MultimodalDataset([parquet], seq_len=64, target_horizon=10)
+    fitted = (train.dt, train.vt, train.bt, train.it, train.comp)
+    def fail_fit(*args):
+        raise AssertionError("validation must not fit tokenizers")
+    monkeypatch.setattr("dataset.multimodal_dataset._fit_all", fail_fit)
+    val = MultimodalDataset([parquet], seq_len=64, target_horizon=10,
+                            tokenizers=fitted)
+    assert val.vt is train.vt
+    assert val.it is train.it

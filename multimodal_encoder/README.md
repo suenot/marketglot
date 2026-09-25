@@ -87,7 +87,7 @@ python scripts/evaluate.py --config configs/default.yaml --checkpoint checkpoint
 
 ## Status
 
-Code complete, 8 tests pass. **Not trained** — no checkpoints or reported
+Code complete, 9 tests pass. **Not trained** — no checkpoints or reported
 metrics yet.
 
 Part of the [marketglot](../README.md) monorepo.

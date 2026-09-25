@@ -42,8 +42,26 @@ def fit_tokenizers(
     return delta_tok, vol_tok, vb_tok
 
 
-def make_split(data_dir: Path, start_month: str, end_month: str) -> list[Path]:
-    klines_dir = data_dir / "BTCUSDT" / "klines_1m"
+def save_tokenizers(tokenizers: tuple[DeltaTokenizer, BucketTokenizer, BucketTokenizer],
+                    directory: Path) -> None:
+    directory.mkdir(parents=True, exist_ok=True)
+    tokenizers[1].save(directory / "volatility.npy")
+    tokenizers[2].save(directory / "volume.npy")
+
+
+def load_tokenizers(directory: Path, range_pct: float = 3.0,
+                    step_pct: float = 0.05, n_bins: int = 8
+                    ) -> tuple[DeltaTokenizer, BucketTokenizer, BucketTokenizer]:
+    delta_tok = DeltaTokenizer(range_pct=range_pct, step_pct=step_pct)
+    vol_tok, vb_tok = BucketTokenizer(n_bins=n_bins), BucketTokenizer(n_bins=n_bins)
+    vol_tok.load(directory / "volatility.npy")
+    vb_tok.load(directory / "volume.npy")
+    return delta_tok, vol_tok, vb_tok
+
+
+def make_split(data_dir: Path, start_month: str, end_month: str,
+               symbol: str = "BTCUSDT") -> list[Path]:
+    klines_dir = data_dir / symbol / "klines_1m"
     if not klines_dir.exists():
         raise FileNotFoundError(f"No klines_1m directory at {klines_dir}")
     files = sorted(klines_dir.glob("*.parquet"))
@@ -60,12 +78,13 @@ class KlinesDataset:
         range_pct: float = 3.0,
         step_pct: float = 0.05,
         n_bins: int = 8,
+        tokenizers: tuple[DeltaTokenizer, BucketTokenizer, BucketTokenizer] | None = None,
     ) -> None:
         self.seq_len = seq_len
         self.target_horizon = target_horizon
         self.target_threshold = target_threshold
 
-        self.delta_tok, self.vol_tok, self.vb_tok = fit_tokenizers(
+        self.delta_tok, self.vol_tok, self.vb_tok = tokenizers or fit_tokenizers(
             file_paths, range_pct, step_pct, n_bins
         )
         self._load_data(file_paths)
@@ -76,14 +95,22 @@ class KlinesDataset:
         self.highs = np.concatenate([f["high"] for f in frames]).astype(np.float32)
         self.lows = np.concatenate([f["low"] for f in frames]).astype(np.float32)
         self.volumes = np.concatenate([f["volume"] for f in frames]).astype(np.float32)
+        self.timestamps = np.concatenate([f["timestamp"] for f in frames]).astype(np.int64)
         n = len(self.closes)
-        self._len = max(0, n - self.seq_len - self.target_horizon)
+        window = self.seq_len + self.target_horizon
+        candidate_starts = np.arange(max(0, n - window + 1), dtype=np.int64)
+        # A missing or duplicated minute must not turn a 60-minute target into
+        # an arbitrary time horizon or bridge disconnected market periods.
+        invalid_prefix = np.concatenate(([0], np.cumsum(np.diff(self.timestamps) != 60)))
+        valid = invalid_prefix[candidate_starts + window - 1] == invalid_prefix[candidate_starts]
+        self.sample_starts = candidate_starts[valid]
+        self._len = len(self.sample_starts)
 
     def __len__(self) -> int:
         return self._len
 
     def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
-        start = idx
+        start = int(self.sample_starts[idx])
         end = start + self.seq_len
         closes = self.closes[start:end]
         highs = self.highs[start:end]

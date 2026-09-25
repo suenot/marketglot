@@ -59,7 +59,7 @@ orderbook_encoder/
   training/trainer.py        # train loop, metrics, artifact writing
   scripts/                   # download_data.py, build_samples.py, train.py
   configs/                   # default.yaml, smoke.yaml
-  tests/                     # 46 tests, no network, synthetic data
+  tests/                     # 49 tests, no network, synthetic data
 ```
 
 ## Quickstart
@@ -68,7 +68,7 @@ Install (with [uv](https://github.com/astral-sh/uv), or a plain venv):
 
 ```bash
 uv sync                       # or: python -m venv .venv && pip install -e ".[dev]"
-pytest -q                     # 46 tests, offline, synthetic data
+pytest -q                     # 49 tests, offline, synthetic data
 ```
 
 End-to-end run (the smoke config trains on a single day):
@@ -83,7 +83,7 @@ python scripts/train.py        --config configs/smoke.yaml
 
 ## Status
 
-Code complete; **46 tests pass**. Smoke-trained on **1 real day** (XRPUSDT / bybit) to validate the full pipeline. This is a working scaffold, **not a validated trading model** — no performance claims beyond "it trains end-to-end".
+Code complete; **49 tests pass**. Smoke-trained on **1 real day** (XRPUSDT / bybit) to validate the full pipeline. This is a working scaffold, **not a validated trading model** — no performance claims beyond "it trains end-to-end".
 
 See [SPEC.md](SPEC.md) for the full design (module contracts, data schemas, reconstruction details). A runnable Kaggle notebook lives at [`../kaggle_notebooks/orderbook_encoder/`](../kaggle_notebooks/orderbook_encoder/).
 

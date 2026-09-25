@@ -1,6 +1,6 @@
 import torch
 import pytest
-from training.trainer import Trainer, compute_class_weights
+from training.trainer import Trainer, ResumableRandomSampler, compute_class_weights
 from models.price_transformer import PriceTransformer
 
 
@@ -13,14 +13,25 @@ def _make_model():
     )
 
 
-def _make_dataloader(n=32, seq_len=16):
+def _make_dataloader(n=32, seq_len=16, shuffle=False, resumable=False):
     delta = torch.randint(2, 121, (n, seq_len))
     vol = torch.randint(2, 9, (n, seq_len))
     vb = torch.randint(2, 9, (n, seq_len))
     labels = torch.randint(0, 3, (n,))
+    dataset = list(zip(delta, vol, vb, labels))
     return torch.utils.data.DataLoader(
-        list(zip(delta, vol, vb, labels)), batch_size=8,
+        dataset, batch_size=8, shuffle=shuffle and not resumable,
+        sampler=ResumableRandomSampler(dataset, seed=7) if resumable else None,
+        generator=torch.Generator() if shuffle or resumable else None,
     )
+
+
+def test_resumable_sampler_skips_completed_samples():
+    sampler = ResumableRandomSampler(range(20), seed=7)
+    sampler.set_epoch(2)
+    full = list(sampler)
+    sampler.set_epoch(2, start_index=8)
+    assert list(sampler) == full[8:]
 
 
 def test_compute_class_weights():
@@ -68,5 +79,46 @@ def test_trainer_early_stop(tmp_path):
         epochs=50, lr=1e-3, device="cpu", checkpoint_dir=tmp_path,
         early_stop_patience=2,
     )
+    trainer._val_epoch = lambda: (1.0, 0.5)
     metrics = trainer.train()
-    assert len(metrics) <= 5
+    assert len(metrics) == 3
+
+
+def test_mid_epoch_resume_matches_uninterrupted_training(tmp_path):
+    torch.manual_seed(123)
+    original = _make_model()
+    initial = {key: value.clone() for key, value in original.state_dict().items()}
+    train_dl = _make_dataloader(n=24, resumable=True)
+    val_dl = _make_dataloader(n=8)
+
+    uninterrupted = Trainer(original, train_dl, val_dl, epochs=1, device="cpu",
+                            grad_accum_steps=2, checkpoint_dir=tmp_path / "full",
+                            checkpoint_every_steps=1, seed=7, max_threads=1)
+    full_metrics = uninterrupted.train()
+    final = {key: value.clone() for key, value in original.state_dict().items()}
+
+    interrupted_model = _make_model()
+    interrupted_model.load_state_dict(initial)
+    interrupted = Trainer(interrupted_model, train_dl, val_dl, epochs=1, device="cpu",
+                          grad_accum_steps=2, checkpoint_dir=tmp_path / "partial",
+                          checkpoint_every_steps=1, seed=7, max_threads=1)
+    save = interrupted._save_checkpoint
+
+    def stop_after_first_step(name, epoch):
+        save(name, epoch)
+        if name == "latest.pt" and interrupted.next_batch == 2:
+            raise RuntimeError("simulated shutdown")
+
+    interrupted._save_checkpoint = stop_after_first_step
+    with pytest.raises(RuntimeError, match="simulated shutdown"):
+        interrupted.train()
+
+    resumed_model = _make_model()
+    resumed = Trainer(resumed_model, train_dl, val_dl, epochs=1, device="cpu",
+                      grad_accum_steps=2, checkpoint_dir=tmp_path / "resumed",
+                      checkpoint_every_steps=1, seed=7, max_threads=1,
+                      resume_from=tmp_path / "partial" / "latest.pt")
+    assert resumed.next_batch == 2
+    assert resumed.train() == full_metrics
+    for key, expected in final.items():
+        torch.testing.assert_close(resumed_model.state_dict()[key], expected, rtol=0, atol=0)

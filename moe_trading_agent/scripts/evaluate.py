@@ -52,18 +52,23 @@ def main(
         sys.exit(1)
 
     # Create dataset
+    if checkpoint_path is None:
+        checkpoint_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "checkpoints", "best_model.pt"
+        )
     dataset = MoEDataset(
         file_paths=file_paths,
         seq_len=model_cfg["seq_len"],
         horizon=train_cfg["horizon"],
         threshold=train_cfg["threshold"],
+        train_fraction=train_cfg["train_split"],
+        tokenizer_dir=os.path.dirname(checkpoint_path),
     )
 
     # Test split
-    total = len(dataset)
-    train_end = int(total * train_cfg["train_split"])
-    val_end = int(total * (train_cfg["train_split"] + train_cfg["val_split"]))
-    test_dataset = Subset(dataset, range(val_end, total))
+    _, _, test_range = dataset.split_ranges(train_cfg["val_split"])
+    test_dataset = Subset(dataset, test_range)
 
     test_loader = DataLoader(
         test_dataset,
@@ -85,12 +90,6 @@ def main(
         dropout=model_cfg["dropout"],
         num_classes=model_cfg["num_classes"],
     ).to(device)
-
-    if checkpoint_path is None:
-        checkpoint_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "checkpoints", "best_model.pt"
-        )
 
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
@@ -114,7 +113,7 @@ def main(
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.numpy())
 
-    target_names = ["UP", "FLAT", "DOWN"]
+    target_names = ["DOWN", "FLAT", "UP"]
     print("\nClassification Report:")
     print(classification_report(all_labels, all_preds, target_names=target_names, zero_division=0))
 

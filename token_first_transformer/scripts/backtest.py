@@ -15,7 +15,7 @@ import numpy as np
 import pyarrow.parquet as pq
 from torch.utils.data import DataLoader
 
-from dataset.klines_dataset import KlinesDataset, make_split
+from dataset.klines_dataset import KlinesDataset, load_tokenizers, make_split
 from models.price_transformer import PriceTransformer
 from backtest.engine import BacktestEngine
 
@@ -31,11 +31,18 @@ def main():
         cfg = yaml.safe_load(f)
 
     data_dir = Path(cfg["data"]["data_dir"])
-    test_files = make_split(data_dir, *cfg["data"]["test_months"])
+    test_files = make_split(data_dir, *cfg["data"]["test_months"],
+                            symbol=cfg["data"]["symbol"])
     seq_cfg = cfg["sequence"]
     tok_cfg = cfg["tokenizer"]
     model_cfg = cfg["model"]
 
+    tokenizers = load_tokenizers(
+        Path(args.checkpoint).parent,
+        range_pct=tok_cfg["delta"]["range_pct"],
+        step_pct=tok_cfg["delta"]["step_pct"],
+        n_bins=tok_cfg["bucket"]["n_bins"],
+    )
     test_ds = KlinesDataset(
         test_files,
         seq_len=seq_cfg["length"],
@@ -44,6 +51,7 @@ def main():
         range_pct=tok_cfg["delta"]["range_pct"],
         step_pct=tok_cfg["delta"]["step_pct"],
         n_bins=tok_cfg["bucket"]["n_bins"],
+        tokenizers=tokenizers,
     )
 
     model = PriceTransformer(
@@ -80,16 +88,21 @@ def main():
             all_preds.extend(preds)
     predictions = np.array(all_preds)
 
-    import pandas as pd
-    frames = [pq.read_table(f).to_pandas() for f in test_files]
-    closes = pd.concat([f["close"] for f in frames]).values.astype(np.float32)
+    bars = [pq.read_table(f, columns=["timestamp", "open", "close"]) for f in test_files]
+    timestamps = np.concatenate([bar["timestamp"].to_numpy() for bar in bars])
+    if np.any(np.diff(timestamps) != 60):
+        raise ValueError("test candles contain time gaps; select a continuous 1m period for backtest")
+    opens = np.concatenate([bar["open"].to_numpy() for bar in bars])
+    closes = np.concatenate([bar["close"].to_numpy() for bar in bars])
 
     bt_cfg = cfg["backtest"]
     engine = BacktestEngine(
         commission=bt_cfg["commission"], stop_loss=bt_cfg["stop_loss"],
         take_profit=bt_cfg["take_profit"], max_hold=bt_cfg["max_hold"],
+        slippage=bt_cfg.get("slippage", 0.0),
     )
-    result = engine.run(closes, predictions)
+    result = engine.run(closes, predictions, opens=opens,
+                        signal_indices=test_ds.sample_starts + test_ds.seq_len - 1)
 
     print(f"\nBacktest Results:")
     print(f"  Total PnL:    {result.total_pnl:+.2%}")

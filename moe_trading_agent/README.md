@@ -60,7 +60,7 @@ moe_trading_agent/
 ├── models/       # expert, router, moe_layer, moe_model
 ├── training/     # Trainer (loss, class weights, early stopping, checkpoints)
 ├── scripts/      # train.py, evaluate.py
-└── tests/        # 19 unit + integration tests
+└── tests/        # 21 unit + integration tests
 ```
 
 ## Quickstart
@@ -83,7 +83,7 @@ Device is auto-selected (MPS > CUDA > CPU).
 
 ## Status
 
-Code complete, **19 tests pass**, **not trained** — no published checkpoint or
+Code complete, **21 tests pass**, **not trained** — no published checkpoint or
 performance numbers yet.
 
 Part of the [marketglot](../README.md) monorepo.

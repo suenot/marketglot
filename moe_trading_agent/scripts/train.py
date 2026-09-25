@@ -46,21 +46,23 @@ def main(config_path: str = "configs/default.yaml", data_dir: str | None = None)
     print(f"Found {len(file_paths)} parquet files")
 
     # Create dataset
+    checkpoint_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "checkpoints"
+    )
     dataset = MoEDataset(
         file_paths=file_paths,
         seq_len=model_cfg["seq_len"],
         horizon=train_cfg["horizon"],
         threshold=train_cfg["threshold"],
+        train_fraction=train_cfg["train_split"],
     )
+    dataset.save_tokenizers(checkpoint_dir)
     print(f"Dataset size: {len(dataset)}")
 
     # Split dataset
-    total = len(dataset)
-    train_end = int(total * train_cfg["train_split"])
-    val_end = int(total * (train_cfg["train_split"] + train_cfg["val_split"]))
-
-    train_dataset = Subset(dataset, range(0, train_end))
-    val_dataset = Subset(dataset, range(train_end, val_end))
+    train_range, val_range, _ = dataset.split_ranges(train_cfg["val_split"])
+    train_dataset = Subset(dataset, train_range)
+    val_dataset = Subset(dataset, val_range)
 
     train_loader = DataLoader(
         train_dataset,
@@ -94,10 +96,6 @@ def main(config_path: str = "configs/default.yaml", data_dir: str | None = None)
     print(f"Model parameters: {total_params:,}")
 
     # Train
-    checkpoint_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "checkpoints"
-    )
     trainer = Trainer(
         model=model,
         train_loader=train_loader,

@@ -33,6 +33,8 @@ class MoEDataset(Dataset):
         seq_len: int = 128,
         horizon: int = 60,
         threshold: float = 0.0015,
+        train_fraction: float = 1.0,
+        tokenizer_dir: str | Path | None = None,
     ) -> None:
         self.seq_len = seq_len
         self.horizon = horizon
@@ -52,17 +54,18 @@ class MoEDataset(Dataset):
         self.close = data["close"].values.astype(np.float32)
         self.volume = data["volume"].values.astype(np.float32)
         self.data = data  # Keep reference for indicator computation
+        self.train_row_end = int(len(data) * train_fraction)
+        if not 0 < self.train_row_end <= len(data):
+            raise ValueError("train_fraction must leave a nonempty training period")
 
         # Initialize and fit tokenizers
         self.delta_tokenizer = DeltaTokenizer(range_pct=3.0, step_pct=0.05)
 
         self.vol_tokenizer = BucketTokenizer(n_bins=8)
-        self.vol_tokenizer.fit(self.volume)
 
         # Volume-body ratio: |close - open| / (high - low + eps)
         vb_raw = np.abs(self.close - self.open) / (self.high - self.low + 1e-10)
         self.vb_tokenizer = BucketTokenizer(n_bins=8)
-        self.vb_tokenizer.fit(vb_raw)
 
         # Compute indicators on full data
         self.indicator_computer = IndicatorComputer()
@@ -78,14 +81,16 @@ class MoEDataset(Dataset):
         # Initialize indicator tokenizer
         self.indicator_tokenizer = IndicatorTokenizer()
 
-        # Try loading boundaries from indicator_tokenizer/boundaries/
-        boundaries_dir = Path(os.path.join(
-            os.path.dirname(__file__), '..', '..', 'indicator_tokenizer', 'boundaries'
-        ))
-        if boundaries_dir.exists() and (boundaries_dir / "rsi.npy").exists():
-            self.indicator_tokenizer.load(boundaries_dir)
+        if tokenizer_dir is not None:
+            boundaries_dir = Path(tokenizer_dir)
+            self.vol_tokenizer.load(boundaries_dir / "volume.npy")
+            self.vb_tokenizer.load(boundaries_dir / "body_ratio.npy")
+            self.indicator_tokenizer.load(boundaries_dir / "indicators")
         else:
-            self.indicator_tokenizer.fit(self.indicators_raw)
+            self.vol_tokenizer.fit(self.volume[:self.train_row_end])
+            self.vb_tokenizer.fit(vb_raw[:self.train_row_end])
+            self.indicator_tokenizer.fit({k: v[:self.train_row_end]
+                                          for k, v in self.indicators_raw.items()})
 
         # Tokenize all indicators at once
         self.indicators_tokenized = self.indicator_tokenizer.encode(self.indicators_raw)
@@ -96,7 +101,25 @@ class MoEDataset(Dataset):
         self.vb_ids_all = self.vb_tokenizer.encode_batch(vb_raw)
 
     def __len__(self) -> int:
-        return len(self.close) - self.seq_len - self.horizon
+        return max(0, len(self.close) - self.seq_len - self.horizon + 1)
+
+    def split_ranges(self, val_fraction: float) -> tuple[range, range, range]:
+        """Disjoint raw-row periods, including each sample's future target."""
+        val_row_end = int(len(self.close) * (self.train_row_end / len(self.close) + val_fraction))
+        width = self.seq_len + self.horizon
+        if (self.train_row_end < width or val_row_end - self.train_row_end < width
+                or len(self.close) - val_row_end < width):
+            raise ValueError("train, validation and test periods must each contain a sample")
+        return (range(0, self.train_row_end - width + 1),
+                range(self.train_row_end, val_row_end - width + 1),
+                range(val_row_end, len(self)))
+
+    def save_tokenizers(self, directory: str | Path) -> None:
+        directory = Path(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+        self.vol_tokenizer.save(directory / "volume.npy")
+        self.vb_tokenizer.save(directory / "body_ratio.npy")
+        self.indicator_tokenizer.save(directory / "indicators")
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor,
                                                dict[str, torch.Tensor], torch.Tensor]:
@@ -116,14 +139,14 @@ class MoEDataset(Dataset):
         }
 
         # Label: 3-class based on future price movement
-        future_close = self.close[end + self.horizon]
+        future_close = self.close[end + self.horizon - 1]
         current_close = self.close[end - 1]
         pct_change = (future_close - current_close) / (current_close + 1e-10)
 
         if pct_change > self.threshold:
-            label = 0  # UP
+            label = 2  # UP
         elif pct_change < -self.threshold:
-            label = 2  # DOWN
+            label = 0  # DOWN
         else:
             label = 1  # FLAT
 

@@ -1,6 +1,6 @@
 [project]
 name = "orderbook-encoder"
-version = "0.1.0"
+version = "0.1.1"
 description = "L2 order book MLP encoder: warehouse data -> book reconstruction -> embeddings"
 requires-python = ">=3.11"
 dependencies = [

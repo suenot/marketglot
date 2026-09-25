@@ -51,7 +51,13 @@ def main():
 
     sc, tc = cfg["sequence"], cfg["tokenizer"]
     train_ds = FusionDataset(train_files, seq_len=sc["length"], target_horizon=sc["target_horizon"], target_threshold=sc["target_threshold"], range_pct=tc["delta"]["range_pct"], step_pct=tc["delta"]["step_pct"], n_bins=tc["bucket"]["n_bins"])
-    val_ds = FusionDataset(val_files, seq_len=sc["length"], target_horizon=sc["target_horizon"], target_threshold=sc["target_threshold"], range_pct=tc["delta"]["range_pct"], step_pct=tc["delta"]["step_pct"], n_bins=tc["bucket"]["n_bins"])
+    fitted = (train_ds.delta_tok, train_ds.vol_tok, train_ds.vb_tok, train_ds.ind_tok, train_ds.comp)
+    val_ds = FusionDataset(val_files, seq_len=sc["length"], target_horizon=sc["target_horizon"], target_threshold=sc["target_threshold"], range_pct=tc["delta"]["range_pct"], step_pct=tc["delta"]["step_pct"], n_bins=tc["bucket"]["n_bins"], tokenizers=fitted)
+    checkpoint_dir = Path(cfg["training"]["checkpoint_dir"])
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    train_ds.vol_tok.save(checkpoint_dir / "volatility.npy")
+    train_ds.vb_tok.save(checkpoint_dir / "volume.npy")
+    train_ds.ind_tok.save(checkpoint_dir / "indicators")
 
     bs = cfg["training"]["batch_size"]
     train_dl = DataLoader(train_ds, batch_size=bs, shuffle=True, collate_fn=collate_fn, num_workers=0)
