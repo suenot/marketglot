@@ -14,7 +14,14 @@ class Trainer:
     def __init__(self, model: MultimodalEncoder, train_loader: DataLoader, val_loader: DataLoader,
                  epochs=10, lr=3e-4, weight_decay=0.01, early_stop_patience=3,
                  device="auto", checkpoint_dir=Path("checkpoints")):
-        self.device = ("mps" if torch.backends.mps.is_available() else "cpu") if device == "auto" else device
+        if device == "auto":
+            if torch.backends.mps.is_available():
+                device = "mps"
+            elif torch.cuda.is_available():
+                device = "cuda"
+            else:
+                device = "cpu"
+        self.device = device
         self.model = model.to(self.device)
         self.train_loader = train_loader
         self.val_loader = val_loader

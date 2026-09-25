@@ -1,6 +1,6 @@
 [project]
 name = "multimodal-encoder"
-version = "0.1.1"
+version = "0.1.2"
 description = "End-to-end multimodal trading model combining candle and indicator encoders"
 requires-python = ">=3.11"
 dependencies = [

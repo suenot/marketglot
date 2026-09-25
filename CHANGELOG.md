@@ -8,6 +8,12 @@ All notable changes to the marketglot research projects are recorded here.
 
 - Document the first resumable BTCUSDT 1m training run and its checkpoint location.
 
+## 0.1.2 - 2026-09-25
+
+### Fixed
+
+- Use CUDA for token-first evaluation and backtests and multimodal training and evaluation when `device: auto` runs on an NVIDIA machine.
+
 ## 0.1.1 - 2026-09-25
 
 ### Fixed

@@ -62,7 +62,12 @@ def main():
 
     ckpt = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
     model.load_state_dict(ckpt["model"])
-    dev = "mps" if torch.backends.mps.is_available() else "cpu"
+    if torch.backends.mps.is_available():
+        dev = "mps"
+    elif torch.cuda.is_available():
+        dev = "cuda"
+    else:
+        dev = "cpu"
     model.to(dev).eval()
 
     preds, labels = [], []
