@@ -11,7 +11,7 @@ Each project lives in its own subdirectory: `w_training/<project_name>/`.
 
 ## Project 1: `token_first_transformer` — MVP
 
-**Status:** Code complete. 45 tests pass. Not trained.
+**Status:** Code complete. 45 tests pass. BTCUSDT 1m training started on 2026-09-25; held-out results pending.
 
 Token-based transformer classifier. Discretizes price deltas into tokens — "market language" — trains small Transformer on BTCUSDT 1m candles for 3-class prediction (UP/FLAT/DOWN).
 

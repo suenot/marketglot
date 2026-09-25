@@ -99,8 +99,11 @@ a local parquet directory of BTCUSDT 1m klines that you must supply.
 
 ## Status
 
-Code complete; 45 tests pass. The model has **not** been trained, so there are
-no performance metrics to report yet.
+Code complete; 45 tests pass. A BTCUSDT 1m training run started on 2026-09-25
+using the chronological splits in `configs/default.yaml`. Its run manifest and
+durable checkpoints are on server1 at
+`/mnt/third/projects/trading/training/checkpoints/clore-btc1m-20260925T0840Z/`.
+Held-out test and cost-adjusted backtest results have not been measured yet.
 
 ---
 

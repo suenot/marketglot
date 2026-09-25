@@ -4,6 +4,10 @@ All notable changes to the marketglot research projects are recorded here.
 
 ## Unreleased
 
+### Changed
+
+- Document the first resumable BTCUSDT 1m training run and its checkpoint location.
+
 ## 0.1.1 - 2026-09-25
 
 ### Fixed
