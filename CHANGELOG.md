@@ -8,6 +8,13 @@ All notable changes to the marketglot research projects are recorded here.
 
 - Document the first resumable BTCUSDT 1m training run and its checkpoint location.
 
+## 0.1.3 - 2026-09-25
+
+### Fixed
+
+- Seed token-first model initialization and random streams for comparable runs.
+- Calculate backtest profit factor from compounded monetary trade results.
+
 ## 0.1.2 - 2026-09-25
 
 ### Fixed

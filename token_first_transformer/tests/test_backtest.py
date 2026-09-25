@@ -93,6 +93,16 @@ def test_compounded_total_return_and_bar_sharpe():
     assert result.sharpe == pytest.approx(np.mean(returns) / np.std(returns) * np.sqrt(365 * 1440))
 
 
+def test_profit_factor_uses_compounded_monetary_pnl():
+    engine = BacktestEngine(commission=0, stop_loss=-0.09, take_profit=0.09, max_hold=10)
+    closes = np.array([100, 110, 110, 110, 99, 99], dtype=float)
+    opens = np.array([100, 100, 110, 110, 110, 99], dtype=float)
+    result = engine.run(closes, np.array([2, 1, 2, 1, 1, 1]), opens=opens)
+    assert [trade.pnl for trade in result.trades] == pytest.approx([0.1, -0.1])
+    assert result.total_pnl == pytest.approx(-0.01)
+    assert result.profit_factor == pytest.approx(0.1 / 0.11)
+
+
 def test_misaligned_predictions_rejected():
     engine = BacktestEngine()
     with pytest.raises(ValueError, match="predictions do not fit"):

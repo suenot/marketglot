@@ -151,9 +151,16 @@ class BacktestEngine:
 
         pnls = [t.pnl for t in trades]
         wins = [p for p in pnls if p > 0]
-        losses = [p for p in pnls if p < 0]
-        gross_profit = sum(wins)
-        gross_loss = -sum(losses)
+        gross_profit = 0.0
+        gross_loss = 0.0
+        entry_equity = 1.0
+        for pnl in pnls:
+            monetary_pnl = entry_equity * pnl
+            if monetary_pnl > 0:
+                gross_profit += monetary_pnl
+            else:
+                gross_loss -= monetary_pnl
+            entry_equity *= 1 + pnl
         profit_factor = float(gross_profit / gross_loss) if gross_loss else (float("inf") if gross_profit else 0.0)
         return BacktestResult(
             total_pnl=total_pnl,

@@ -5,17 +5,29 @@ Usage: python scripts/train.py [--config configs/default.yaml]
 from __future__ import annotations
 
 import sys
+import random
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import yaml
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
 from dataset.klines_dataset import KlinesDataset, make_split, save_tokenizers, load_tokenizers
 from training.trainer import Trainer, ResumableRandomSampler, compute_class_weights
 from models.price_transformer import PriceTransformer
+
+
+def seed_all(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    if hasattr(torch, "mps") and hasattr(torch.mps, "manual_seed") and torch.backends.mps.is_available():
+        torch.mps.manual_seed(seed)
 
 
 def main():
@@ -27,6 +39,7 @@ def main():
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
+    seed_all(int(cfg["training"]["seed"]))
 
     data_dir = Path(cfg["data"]["data_dir"])
     symbol = cfg["data"]["symbol"]

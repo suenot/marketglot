@@ -1,7 +1,11 @@
+import random
+
+import numpy as np
 import torch
 import pytest
 from training.trainer import Trainer, ResumableRandomSampler, compute_class_weights
 from models.price_transformer import PriceTransformer
+from scripts.train import seed_all
 
 
 def _make_model():
@@ -24,6 +28,22 @@ def _make_dataloader(n=32, seq_len=16, shuffle=False, resumable=False):
         sampler=ResumableRandomSampler(dataset, seed=7) if resumable else None,
         generator=torch.Generator() if shuffle or resumable else None,
     )
+
+
+def test_seed_all_repeats_model_initialization_and_rng_streams():
+    seed_all(7)
+    first_model = _make_model()
+    first_draws = (random.random(), np.random.random(), torch.rand(1))
+
+    seed_all(7)
+    second_model = _make_model()
+    second_draws = (random.random(), np.random.random(), torch.rand(1))
+
+    for key, value in first_model.state_dict().items():
+        torch.testing.assert_close(value, second_model.state_dict()[key], rtol=0, atol=0)
+    assert first_draws[0] == second_draws[0]
+    assert first_draws[1] == second_draws[1]
+    torch.testing.assert_close(first_draws[2], second_draws[2], rtol=0, atol=0)
 
 
 def test_resumable_sampler_skips_completed_samples():
