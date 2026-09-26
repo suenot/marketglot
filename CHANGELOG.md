@@ -4,10 +4,20 @@ All notable changes to the marketglot research projects are recorded here.
 
 ## Unreleased
 
+## 0.3.0 - 2026-09-26
+
+### Added
+
+- Evaluate local open decision models against the token-first Transformer and
+  causal rules on the same hourly BTCUSDT signals, with resumable probability
+  caches, three choice orders (including an efficient per-state sweep),
+  probability scores, cost scenarios, and a local Laya adapter.
+
 ### Changed
 
 - Document the first resumable BTCUSDT 1m training run, checkpoint location,
-  negative held-out trading results, and follow-up research plan.
+  negative held-out trading results, follow-up research plan, and the open
+  teacher validation experiment.
 
 ## 0.2.0 - 2026-09-25
 

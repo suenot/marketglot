@@ -78,6 +78,77 @@ python scripts/evaluate.py --checkpoint checkpoints/best.pt --config configs/def
 python scripts/backtest.py --checkpoint checkpoints/best.pt --config configs/default.yaml
 ```
 
+For a paired hourly evaluation of a locally served Kev teacher against the
+Transformer and simple baselines, use the same checkpoint and split data:
+
+```bash
+python scripts/evaluate_teacher.py --config configs/default.yaml \
+  --data-dir data/teacher_eval --checkpoint checkpoints/teacher_eval/best.pt \
+  --teacher-id 'kev-0.8b:adapter=9a45d25eb2ab761841196625383fa1dff0e56c1e:base=dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68:code=3d9973b80b34d187f9fc8ce81de940b5767eb624' \
+  --split val --endpoint http://127.0.0.1:8008/v1/systemone
+```
+
+Run `--split test` only after the validation protocol is fixed. Supply the
+exact served checkpoint and revision in `--teacher-id`; it separates caches,
+but cannot attest third-party server weights. Check the pinned local snapshot
+and the server's `/health` or `/v1/models` response before resuming a run. The script
+selects UTC hourly closes with complete 128-candle history and 60-candle
+future, sends compact causal price/volatility/volume features without an
+absolute timestamp, and uses the next open for all backtest entries. It writes
+a fsynced, resumable JSONL decision cache, experiment manifest, and paired summary under ignored
+`runs/teacher_eval/`. `--max-signals N` checks the first N signals and labels
+its summary as partial. Each decision stores the full DOWN/FLAT/UP probability
+distribution or a FLAT abstention status if the local service fails. Repeated
+service failures stop the run and leave the cache for resumption.
+Each strategy is reported with 4bp commission per side, then with 5bp
+slippage per side, and under a doubled-cost 8bp/10bp stress scenario.
+
+To measure sensitivity to answer order efficiently, add `--all-orders` to
+query the three cyclic orders consecutively for each market state. It preserves
+three separate fsynced caches with the same experiment IDs as individual runs,
+so it can also resume them. Alternatively run the evaluation three times with
+`--criteria-order DOWN,FLAT,UP` (the default), `FLAT,UP,DOWN`, and
+`UP,DOWN,FLAT`. After all three runs finish, combine them
+offline with the same checkpoint, data, teacher ID, split, endpoint and optional
+`--max-signals` arguments:
+
+```bash
+python scripts/evaluate_teacher.py --config configs/default.yaml \
+  --data-dir data/teacher_eval --checkpoint checkpoints/teacher_eval/best.pt \
+  --teacher-id 'kev-0.8b:adapter=9a45d25eb2ab761841196625383fa1dff0e56c1e:base=dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68:code=3d9973b80b34d187f9fc8ce81de940b5767eb624' \
+  --split val --endpoint http://127.0.0.1:8008/v1/systemone \
+  --ensemble-from NORMAL_RUN_DIR FLAT_FIRST_RUN_DIR UP_FIRST_RUN_DIR
+```
+
+Use the three run directories printed with the individual caches, in the
+order shown. The ensemble requires matching manifests, complete successful
+probability rows and matching baseline summaries. It averages DOWN/FLAT/UP
+probabilities per hourly signal, chooses the largest mean, and reports the
+same cost scenarios and baselines without model or service calls. For runs
+without service failures, it also reports multiclass Brier score and log loss;
+lower is better, and uniform probabilities score 2/3 and log(3) respectively.
+
+Laya can be served separately after installing `laya==0.3.20` and its runtime
+in a separate environment. For the pinned local snapshot, start
+`python scripts/serve_laya.py --model runs/teacher_eval/model-cache/laya/hub/models--convaiinnovations--laya/snapshots/55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851 --device mps --port 8009`,
+then use `--teacher-id convaiinnovations/laya@55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851`
+and `--endpoint http://127.0.0.1:8009/v1/systemone` with the evaluator.
+
+Kev-4B also fits on a MacBook M2 Max with 32 GB RAM. With the [Kev source](https://github.com/jaredpalmer/kev)
+at commit `3d9973b80b34d187f9fc8ce81de940b5767eb624` installed in a separate
+environment and its pinned adapter/base downloaded, serve it from this directory:
+
+```bash
+HF_HOME="$PWD/runs/teacher_eval/model-cache/kev4b" \
+  python -m kev.serve \
+  --run jaredpalmer/kev-4b@139fdd94f1b6a6ad80cc15e08fcb99cac885a101 \
+  --port 8010
+```
+
+Use `--endpoint http://127.0.0.1:8010/v1/systemone`, a `--teacher-id` that
+includes the adapter and Qwen base revisions, and `--all-orders` with the
+evaluator. Query `/v1/models` to confirm the served adapter before starting.
+
 Training writes `latest.pt` atomically every 100 optimizer steps by default and
 after each epoch. It contains the model, optimizer, scheduler, random state,
 metrics, and the next batch position. The training-fitted bucket boundaries are
@@ -104,7 +175,7 @@ cross-entropy. Keep the same setting when resuming a checkpoint.
 
 ## Status
 
-Code complete; 48 tests pass. A BTCUSDT 1m run on 2026-09-25 used the
+Code complete; 61 tests pass. A BTCUSDT 1m run on 2026-09-25 used the
 chronological splits in `configs/default.yaml`. Its run manifest and durable
 checkpoints are on server1 at
 `/mnt/third/projects/trading/training/checkpoints/clore-btc1m-20260925T0840Z/`.
@@ -116,6 +187,8 @@ cost-adjusted validation. A separate six-month-history run early-stopped at
 epoch 5; it reached test weighted F1 0.3661 and returned -93.61% in the
 commission-only backtest. See the [experiment audit](../docs/research/btcusdt-1m-2026-09-25.md)
 for the assumptions and next steps.
+The [open-teacher validation](../docs/research/open-teacher-btc1m-2026-09-26.md)
+found no profitable or calibrated teacher among Laya, Kev-0.8B, and Kev-4B.
 
 ---
 
